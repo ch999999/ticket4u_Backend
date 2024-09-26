@@ -1,4 +1,4 @@
-# Instructions to set up database in local environment
+# Instructions to set up database in local environment (If they still haven't given us Google Cloud Database)
 
 Step 1: Must install Docker Desktop. (Prereq for windows: WSL)
 
@@ -15,3 +15,7 @@ Step 6: Make sure container is running in Docker Desktop
 Step 7: Create database migration script: alembic revision --autogenerate -m "initial migrate"
 
 Step 8: Run migration: alembic upgrade head 
+
+Step 9: Install pgAdmin
+
+Step 10: Register server in pgAdmin. Name: ticket4u_db, Hostname/address: localhost, Port: 5433, Password: passwrd123 
