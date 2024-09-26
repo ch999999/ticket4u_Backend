@@ -1,4 +1,4 @@
-#Instructions to set up database in local environment
+# Instructions to set up database in local environment
 
 Step 1: Must install Docker Desktop. (Prereq for windows: WSL)
 
