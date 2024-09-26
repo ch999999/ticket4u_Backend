@@ -1,4 +1,4 @@
-# Instructions to set up database in local environment (If they still haven't given us Google Cloud Database)
+# Instructions to set up database in local environment (If they still haven't given us Google Cloud Database) Don't try unless your computer is good 8GB RAM + good processor
 
 Step 1: Must install Docker Desktop. (Prereq for windows: WSL)
 
