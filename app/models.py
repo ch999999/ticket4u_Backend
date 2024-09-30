@@ -140,5 +140,3 @@ class Discount(Base):
     valid_to = Column(DateTime(timezone=True))
 
     tickets = relationship("Ticket", back_populates="discount")
-
-
