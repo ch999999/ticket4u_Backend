@@ -1,10 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime, date
-from typing import List, Optional
+from typing import Optional
+from uuid import UUID
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
 
 class UserBase(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     phone: str
     first_name: str
     last_name: str
@@ -13,20 +19,19 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
-
 class User(UserBase):
-    id: int
+    id: UUID
     date_of_registration: datetime
     last_modified_date: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes=True
 
 
 class TicketBase(BaseModel):
-    showing_id: int
-    user_id: int
-    seat_id: int
+    showing_id: UUID
+    user_id: UUID
+    seat_id: UUID
     pricex100: int
     status: str
     discount_id: Optional[int] = None
@@ -37,17 +42,17 @@ class TicketCreate(TicketBase):
 
 
 class Ticket(TicketBase):
-    id: int
+    id: UUID
     purchase_time: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PaymentBase(BaseModel):
     payment_method: str
     status: str
-    user_id: int
+    user_id: UUID
 
 
 class PaymentCreate(PaymentBase):
@@ -55,11 +60,11 @@ class PaymentCreate(PaymentBase):
 
 
 class Payment(PaymentBase):
-    id: int
+    id: UUID
     payment_time: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class MovieBase(BaseModel):
@@ -75,15 +80,15 @@ class MovieCreate(MovieBase):
 
 
 class Movie(MovieBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ShowingBase(BaseModel):
-    hall_id: int
-    movie_id: int
+    hall_id: UUID
+    movie_id: UUID
     start_time: datetime
 
 
@@ -92,14 +97,14 @@ class ShowingCreate(ShowingBase):
 
 
 class Showing(ShowingBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class HallBase(BaseModel):
-    cinema_id: int
+    cinema_id: UUID
     name: str
     capacity: int
 
@@ -109,10 +114,10 @@ class HallCreate(HallBase):
 
 
 class Hall(HallBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CinemaBase(BaseModel):
@@ -126,14 +131,14 @@ class CinemaCreate(CinemaBase):
 
 
 class Cinema(CinemaBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SeatBase(BaseModel):
-    hall_id: int
+    hall_id: UUID
     row: str
     number: int
     type: str
@@ -144,16 +149,16 @@ class SeatCreate(SeatBase):
 
 
 class Seat(SeatBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RefundBase(BaseModel):
     reason: str
     status: str
-    user_id: int
+    user_id: UUID
 
 
 class RefundCreate(RefundBase):
@@ -161,11 +166,11 @@ class RefundCreate(RefundBase):
 
 
 class Refund(RefundBase):
-    id: int
+    id: UUID
     refund_time: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class DiscountBase(BaseModel):
@@ -182,15 +187,15 @@ class DiscountCreate(DiscountBase):
 
 
 class Discount(DiscountBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TicketPaymentBase(BaseModel):
-    ticket_id: int
-    payment_id: int
+    ticket_id: UUID
+    payment_id: UUID
     status: str
     amountx100: int
 
@@ -200,17 +205,17 @@ class TicketPaymentCreate(TicketPaymentBase):
 
 
 class TicketPayment(TicketPaymentBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TicketPaymentRefundBase(BaseModel):
-    ticket_payment_id: int
+    ticket_payment_id: UUID
     amountx100: int
     status: str
-    refund_id: int
+    refund_id: UUID
     reason: str
 
 
@@ -219,7 +224,7 @@ class TicketPaymentRefundCreate(TicketPaymentRefundBase):
 
 
 class TicketPaymentRefund(TicketPaymentRefundBase):
-    id: int
+    id: UUID
 
     class Config:
-        orm_mode = True
+        from_attributes = True
