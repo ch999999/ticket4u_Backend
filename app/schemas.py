@@ -30,11 +30,8 @@ class User(UserBase):
 
 class TicketBase(BaseModel):
     showing_id: UUID
-    user_id: UUID
-    seat_id: UUID
-    pricex100: int
-    status: str
-    discount_id: Optional[int] = None
+    seat_id: UUID 
+    #discount_id: Optional[int] = None
 
 
 class TicketCreate(TicketBase):
@@ -43,16 +40,17 @@ class TicketCreate(TicketBase):
 
 class Ticket(TicketBase):
     id: UUID
-    purchase_time: datetime
-
+    user_id: UUID
+    status: str
+    pricex100: int
+    created_date: datetime
+    last_modified_date: datetime  
     class Config:
         from_attributes = True
 
 
 class PaymentBase(BaseModel):
     payment_method: str
-    status: str
-    user_id: UUID
 
 
 class PaymentCreate(PaymentBase):
@@ -61,7 +59,10 @@ class PaymentCreate(PaymentBase):
 
 class Payment(PaymentBase):
     id: UUID
-    payment_time: datetime
+    status: str
+    user_id: UUID
+    created_date: datetime
+    last_modified_date: datetime
 
     class Config:
         from_attributes = True
@@ -90,6 +91,7 @@ class ShowingBase(BaseModel):
     hall_id: UUID
     movie_id: UUID
     start_time: datetime
+    pricex100: int
 
 
 class ShowingCreate(ShowingBase):
@@ -173,24 +175,24 @@ class Refund(RefundBase):
         from_attributes = True
 
 
-class DiscountBase(BaseModel):
-    code: str
-    type: str
-    amountx100: Optional[int] = None
-    percentx100: Optional[int] = None
-    valid_from: datetime
-    valid_to: datetime
+# class DiscountBase(BaseModel):
+#     code: str
+#     type: str
+#     amountx100: Optional[int] = None
+#     percentx100: Optional[int] = None
+#     valid_from: datetime
+#     valid_to: datetime
 
 
-class DiscountCreate(DiscountBase):
-    pass
+# class DiscountCreate(DiscountBase):
+#     pass
 
 
-class Discount(DiscountBase):
-    id: UUID
+# class Discount(DiscountBase):
+#     id: UUID
 
-    class Config:
-        from_attributes = True
+#     class Config:
+#         from_attributes = True
 
 
 class TicketPaymentBase(BaseModel):
@@ -206,6 +208,8 @@ class TicketPaymentCreate(TicketPaymentBase):
 
 class TicketPayment(TicketPaymentBase):
     id: UUID
+    created_date: datetime
+    last_modified_date: datetime
 
     class Config:
         from_attributes = True

@@ -9,7 +9,7 @@ from app.database import Base
 class Users(Base):
     __tablename__ = "Users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True) #id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     phone = Column(String)
@@ -31,15 +31,14 @@ class Tickets(Base):
     showing_id = Column(UUID(as_uuid=True), ForeignKey("Showings.id"))
     user_id = Column(UUID(as_uuid=True), ForeignKey("Users.id"))
     seat_id = Column(UUID(as_uuid=True), ForeignKey("Seats.id"))
-    purchase_time = Column(DateTime(timezone=True))
     pricex100 = Column(Integer)
     status = Column(String)
-    discount_id = Column(UUID(as_uuid=True), ForeignKey("Discounts.id"))
+    created_date = Column(DateTime(timezone=True))
+    last_modified_date = Column(DateTime(timezone=True))
 
     user = relationship("Users", back_populates="tickets")
     showing = relationship("Showings", back_populates="tickets")
     seat = relationship("Seats", back_populates="tickets")
-    discount = relationship("Discounts", back_populates="tickets")
     ticket_payments = relationship("TicketPayments", back_populates="ticket")
 
 
@@ -48,9 +47,10 @@ class Payments(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     payment_method = Column(String)
-    payment_time = Column(DateTime(timezone=True))
     status = Column(String)
     user_id = Column(UUID(as_uuid=True), ForeignKey("Users.id"))
+    created_date = Column(DateTime(timezone=True))
+    last_modified_date = Column(DateTime(timezone=True))
 
     user = relationship("Users", back_populates="payments")
     ticket_payments = relationship("TicketPayments", back_populates="payment")
@@ -76,6 +76,7 @@ class Showings(Base):
     hall_id = Column(UUID(as_uuid=True), ForeignKey("Halls.id"))
     movie_id = Column(UUID(as_uuid=True), ForeignKey("Movies.id"))
     start_time = Column(DateTime(timezone=True))
+    pricex100 = Column(Integer)
 
     hall = relationship("Halls", back_populates="showings")
     movie = relationship("Movies", back_populates="showings")
@@ -132,20 +133,6 @@ class Refunds(Base):
     ticket_payment_refunds = relationship("TicketPaymentRefunds", back_populates="refund")
 
 
-class Discounts(Base):
-    __tablename__ = "Discounts"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    code = Column(String)
-    type = Column(String)
-    amountx100 = Column(Integer)
-    percentx100 = Column(Integer)
-    valid_from = Column(DateTime(timezone=True))
-    valid_to = Column(DateTime(timezone=True))
-
-    tickets = relationship("Tickets", back_populates="discount")
-
-
 class TicketPayments(Base):
     __tablename__ = "Ticket_Payments"
 
@@ -154,6 +141,8 @@ class TicketPayments(Base):
     payment_id = Column(UUID(as_uuid=True), ForeignKey("Payments.id"))
     status = Column(String)
     amountx100 = Column(Integer)
+    created_date = Column(DateTime(timezone=True))
+    last_modified_date = Column(DateTime(timezone=True))
 
     ticket = relationship("Tickets", back_populates="ticket_payments")
     payment = relationship("Payments", back_populates="ticket_payments")
@@ -172,5 +161,37 @@ class TicketPaymentRefunds(Base):
 
     ticket_payment = relationship("TicketPayments", back_populates="ticket_payment_refunds")
     refund = relationship("Refunds", back_populates="ticket_payment_refunds")
+
+
+# class Discounts(Base):
+#     __tablename__ = "Discounts"
+
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+#     code = Column(String)
+#     type = Column(String)
+#     amountx100 = Column(Integer)
+#     percentx100 = Column(Integer)
+#     valid_from = Column(DateTime(timezone=True))
+#     valid_to = Column(DateTime(timezone=True))
+
+#     tickets = relationship("Tickets", back_populates="discount")
+
+#class Tickets(Base):
+#     __tablename__ = "Tickets"
+
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+#     showing_id = Column(UUID(as_uuid=True), ForeignKey("Showings.id"))
+#     user_id = Column(UUID(as_uuid=True), ForeignKey("Users.id"))
+#     seat_id = Column(UUID(as_uuid=True), ForeignKey("Seats.id"))
+#     purchase_time = Column(DateTime(timezone=True))
+#     pricex100 = Column(Integer)
+#     status = Column(String)
+#     #discount_id = Column(UUID(as_uuid=True), ForeignKey("Discounts.id"))
+
+#     user = relationship("Users", back_populates="tickets")
+#     showing = relationship("Showings", back_populates="tickets")
+#     seat = relationship("Seats", back_populates="tickets")
+#     #discount = relationship("Discounts", back_populates="tickets")
+#     ticket_payments = relationship("TicketPayments", back_populates="ticket")
 
 
