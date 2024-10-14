@@ -23,16 +23,12 @@ If models in models.py changed, database schema must be updated to reflect it.
 
 Step 1: Shut down API server if still running
 
-Step 2: In pgAdmin, run this SQL command against ticket4u_db (NOT postgres!!!!):
-
-do $$ declare
-    r record;
-begin
-    for r in (select tablename from pg_tables where schemaname = 'public') loop
-        execute 'drop table if exists ' || quote_ident(r.tablename) || ' cascade';
-    end loop;
-end $$;
-
+Step 2: In pgAdmin, copy and run thie SQL in resetdb.sql against ticket4u_db (NOT postgres!!!!)
 This will drop all tables in ticket4u_db.
 
 Step 3: restart API server. same command as Step 9 from previous section
+
+# Inserting sample data
+To clear tables, you can repeat Step 2 of the last section. After restarting the API server and regenerating database tables, copy and run the SQL in 
+sample-data.sql to insert sample Cinemas, Halls, Seats, Movies, Showings and Users into the database.
+
