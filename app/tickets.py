@@ -1,11 +1,12 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, Path, HTTPException
 from app.models import Tickets, Payments, TicketPayments, Seats, Showings, Halls
-from app.schemas import TicketBase, TicketCreate, Ticket, PaymentCreate, TicketPaymentCreate
+from app.schemas import TicketBase, TicketCreate, Ticket, PaymentCreate, TicketPaymentCreate, Payment
 from app.database import SessionLocal
 from typing import Annotated
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
+from uuid import UUID
 
 router = APIRouter()
 
@@ -20,12 +21,15 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-@router.post("/tickets/create", response_model=list[Ticket])
-async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates: list[TicketCreate], payment: PaymentCreate):
+@router.post("/tickets/create", response_model=Payment)
+async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates: list[TicketCreate]):
     try:
-        tickets_created = []
         if user is None:
             raise HTTPException(status_code=401, detail="Not Authenticated")
+        
+        #If duplicate seat_ids found, reject
+        # if check_duplicate_values(ticket_creates, "seat_id") is True:
+        #     raise HTTPException(status_code=400, detail="Duplicate seats not allowed")
         
         #Get list of active and to-be-paid-for tickets for this showing, and get the hall for this showing
         showing_id = ticket_creates[0].showing_id
@@ -48,7 +52,7 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
             
         #Create new Payment item, status unpaid
         new_payment = Payments(
-            payment_method = payment.payment_method,
+            payment_method = "tba",
             status = "unpaid",
             user_id = user.get("id"),
             created_date = datetime.now(),
@@ -79,12 +83,44 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
                 last_modified_date = datetime.now()
             )
             db.add(new_ticket_payment)
-
-            tickets_created.append(new_ticket)
         
         db.commit()
-        return tickets_created
+
+        #If successful, return the Payment
+        return new_payment
     except Exception as e:
         print("Error creating ticket: "+str(e))
         raise HTTPException(status_code=400, detail= "Invalid Request")
+
+def check_duplicate_values(list, key):
+    seen = set()
+    for d in list:
+        if key in d:
+            if d[key] in seen:
+                return True
+            seen.add(d[key])
+    return False
+
+@router.get("/tickets/payment_group/{payment_id}", response_model = list[Ticket])
+async def get_tickets_by_payment(user: user_dependency, db: db_dependency, payment_id: UUID):
+    try:
+        if user is None:
+            raise HTTPException(status_code=401, detail="Not Authenticated")
+
+        payment = db.query(Payments).filter(Payments.id == payment_id).first()
+
+        if payment.user_id != user.get("id"):
+            raise HTTPException(status_code=401, detail="Payment does not belong to this user")
+        
+        #find and return all tickets associated with the payment
+        tickets = []
+        ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id == payment_id).all()
+        for ticket_payment in ticket_payments:
+            ticket = db.query(Tickets).filter(Tickets.id == ticket_payment.ticket_id).first()
+            tickets.append(ticket)
+        return tickets
+    except Exception as e:
+        print("Error fetching tickets: "+str(e))
+        raise HTTPException(status_code=400, detail= "Invalid Request")
+
 
