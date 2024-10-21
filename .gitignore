@@ -33,3 +33,4 @@ archive.zip
 .env
 db*
 notes.txt
+test.py
