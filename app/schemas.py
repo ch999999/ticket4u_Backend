@@ -158,7 +158,6 @@ class Seat(SeatBase):
 
 
 class RefundBase(BaseModel):
-    reason: str
     status: str
     user_id: UUID
 
@@ -169,7 +168,8 @@ class RefundCreate(RefundBase):
 
 class Refund(RefundBase):
     id: UUID
-    refund_time: datetime
+    created_date: datetime
+    last_modified_date: datetime
 
     class Config:
         from_attributes = True
@@ -229,6 +229,8 @@ class TicketPaymentRefundCreate(TicketPaymentRefundBase):
 
 class TicketPaymentRefund(TicketPaymentRefundBase):
     id: UUID
+    created_date: datetime
+    last_modified_date: datetime
 
     class Config:
         from_attributes = True

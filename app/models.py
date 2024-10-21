@@ -124,10 +124,10 @@ class Refunds(Base):
     __tablename__ = "Refunds"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    refund_time = Column(DateTime(timezone=True))
-    reason = Column(String)
     status = Column(String)
     user_id = Column(UUID(as_uuid=True), ForeignKey("Users.id"))
+    created_date = Column(DateTime(timezone=True))
+    last_modified_date = Column(DateTime(timezone=True))
 
     user = relationship("Users", back_populates="refunds")
     ticket_payment_refunds = relationship("TicketPaymentRefunds", back_populates="refund")
@@ -158,6 +158,8 @@ class TicketPaymentRefunds(Base):
     status = Column(String)
     refund_id = Column(UUID(as_uuid=True), ForeignKey("Refunds.id"))
     reason = Column(String)
+    created_date = Column(DateTime(timezone=True))
+    last_modified_date = Column(DateTime(timezone=True))
 
     ticket_payment = relationship("TicketPayments", back_populates="ticket_payment_refunds")
     refund = relationship("Refunds", back_populates="ticket_payment_refunds")
