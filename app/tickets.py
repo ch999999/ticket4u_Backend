@@ -9,7 +9,7 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from uuid import UUID
-from app.error_checking import check_duplicate_values, string_exists_or_ends_with
+from app.error_handling import check_duplicate_values, string_exists_or_ends_with
 
 router = APIRouter()
 
@@ -115,27 +115,7 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
 
 
 
-@router.get("/tickets/payment_group/{payment_id}", response_model = list[Ticket])
-async def get_tickets_by_payment(user: user_dependency, db: db_dependency, payment_id: UUID):
-    try:
-        if user is None:
-            raise HTTPException(status_code=401, detail="Not Authenticated")
 
-        payment = db.query(Payments).filter(Payments.id == payment_id).first()
-
-        if str(payment.user_id) != str(user.get("id")):
-            raise HTTPException(status_code=401, detail="Payment does not belong to this user")
-        
-        #find and return all tickets associated with the payment
-        tickets = []
-        ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id == payment_id).all()
-        for ticket_payment in ticket_payments:
-            ticket = db.query(Tickets).filter(Tickets.id == ticket_payment.ticket_id).first()
-            tickets.append(ticket)
-        return tickets
-    except Exception as e:
-        print("Error fetching tickets: "+str(e))
-        raise HTTPException(status_code=400, detail= "Invalid Request")
     
 #get all tickets belonging to a user
 @router.get("/tickets", response_model=list[Ticket])
