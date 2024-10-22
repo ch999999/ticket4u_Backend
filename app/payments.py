@@ -8,7 +8,7 @@ from app.database import SessionLocal
 from typing import Annotated, List
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
-from app.error_checking import check_duplicate_values, string_exists_or_ends_with
+from app.error_handling import check_duplicate_values, string_exists_or_ends_with, handle_exception
 
 router = APIRouter()
 
@@ -22,9 +22,85 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-knownErrorStrings = ["Payment does not belong to this user", "Payment attempt already made", "Ticket ineligible for refund", "Ticket not eligible for refund","Duplicate values not allowed"]
+knownErrorStrings = ["Payment does not belong to this user","Ticket payments not found","Payment not found","Unauthorized","No payments found for this user", "Payment attempt already made", "Ticket ineligible for refund", "Ticket not eligible for refund","Duplicate values not allowed"]
 
-@router.put("/payments/pay/{payment_id}", response_model = Payment)
+@router.get("/payments/all")
+async def get_all_payments(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    
+    try:
+        user_payments = db.query(Payments).filter(Payments.user_id == user.get("id")).all()
+        if user_payments is None or len(user_payments) < 1:
+            raise HTTPException(status_code=404, detail="No payments found for this user")
+        return user_payments
+    except Exception as e:
+        print("Error fetching payments: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+@router.get("/payments/{payment_id}")
+async def get_payment_by_id(user: user_dependency, db: db_dependency, payment_id: UUID):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    
+    try:
+        payment = db.query(Payments).filter(Payments.id == payment_id).first()
+        if payment is None or len(payment) < 1:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        if str(payment.user_id) != str(user.get("id")):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        return payment
+    except Exception as e:
+        print("Error fetching payment: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+@router.get("/payments/{payment_id}/ticket_payments")
+async def fetch_payment_ticket_payments(user: user_dependency, db: db_dependency, payment_id: UUID):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    
+    try:
+        payment = db.query(Payments).filter(Payments.id == payment_id).first()
+        if payment is None or len(payment) < 1:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        if str(payment.user_id) != str(user.get("id")):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment == payment_id).all()
+        if ticket_payments is None or len(ticket_payments) < 1:
+            raise HTTPException(status_code=404, detail="Ticket payments not found")
+        return ticket_payments
+    except Exception as e:
+        print("Error fetching ticket payments: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+
+@router.get("/payments/{payment_id}/tickets", response_model = list[Ticket])
+async def get_tickets_by_payment(user: user_dependency, db: db_dependency, payment_id: UUID):    
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    
+    try:
+        payment = db.query(Payments).filter(Payments.id == payment_id).first()
+
+        if str(payment.user_id) != str(user.get("id")):
+            raise HTTPException(status_code=401, detail="Payment does not belong to this user")
+        
+        #find and return all tickets associated with the payment
+        tickets = []
+        ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id == payment_id).all()
+        for ticket_payment in ticket_payments:
+            ticket = db.query(Tickets).filter(Tickets.id == ticket_payment.ticket_id).first()
+            tickets.append(ticket)
+        
+        if tickets is None or len(tickets) < 1:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        return tickets
+    except Exception as e:
+        print("Error fetching tickets: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+@router.put("/payments/{payment_id}/pay", response_model = Payment)
 async def make_payment(user: user_dependency, db: db_dependency, payment_id: UUID, payment_method: Annotated[str, Body()]):
     if user is None:
         raise HTTPException(status_code=401, detail="Not Authenticated")
@@ -49,14 +125,14 @@ async def make_payment(user: user_dependency, db: db_dependency, payment_id: UUI
         #if unsuccessful payment, update status of payment item and all ticket_payment items to failed
         if success is not True:
             payment.status = "failed"
-            payment.last_modified_date = datetime.now()
+            payment.last_modified_date = datetime.now(timezone.utc)
             db.add(payment)
             for ticket_payment in ticket_payments:
                 ticket = db.query(Tickets).filter(Tickets.id == ticket_payment.ticket_id).first()
                 ticket.status = "failed"
                 db.add(ticket)
                 ticket_payment.status = "failed"
-                ticket_payment.last_modified_date = datetime.now()
+                ticket_payment.last_modified_date = datetime.now(timezone.utc)
                 db.add(ticket_payment)
             db.commit()
             raise HTTPException(status_code=400, detail="Payment failed")
@@ -67,111 +143,21 @@ async def make_payment(user: user_dependency, db: db_dependency, payment_id: UUI
             ticket.status = "active"
             db.add(ticket)
             ticket_payment.status = "success"
-            ticket_payment.last_modified_date = datetime.now()
+            ticket_payment.last_modified_date = datetime.now(timezone.utc)
             db.add(ticket_payment)
 
         payment.status = "success"
-        payment.last_modified_date = datetime.now()
+        payment.last_modified_date = datetime.now(timezone.utc)
 
         db.commit()
         return payment
     except Exception as e:
         print("Error making payment: "+str(e))
-
-        #If exception does not have status_code or detail properties, return default uninformative error message
-        if hasattr(e, "status_code") == False or hasattr(e, "detail") == False:
-            raise HTTPException(status_code=400, detail="Invalid Request")
+        handle_exception(e, knownErrorStrings)
         
-        #If exception detail is known, return the error details, else return default uninformative error message
-        if string_exists_or_ends_with(e.detail, knownErrorStrings):
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-        else:
-            raise HTTPException(status_code=400, detail= "Invalid Request")
     
 
-@router.put("/payments/refund", response_model=list[Ticket])
-async def refund_tickets(user: user_dependency, db: db_dependency, ticket_ids: Annotated[List[UUID], Body()]):
-    if user is None:
-        raise HTTPException(status_code=401, detail="Not Authenticated")
-    
-    try:
-        #extract the ticket_payments from database
-        ticket_payments_to_refund = []
-        dataToCompare = []
-        for id in ticket_ids:
-            dataToCompare.append({"id": str(id)})
-            ticket_payment = db.query(TicketPayments).filter(TicketPayments.ticket_id == id).first()
-            #if status of any is found to not be paid, cannot refund, strange request, terminate operation
-            if ticket_payment.status.lower() != "success":
-                raise HTTPException(status_code=400, detail="Ticket ineligible for refund")
-            ticket_payments_to_refund.append(ticket_payment)
-        
-        #if array still empty, reject
-        if len(ticket_payments_to_refund) < 1:
-            raise HTTPException(status_code=404, detail="Not found")
 
-        #if duplicate ids found, reject
-        if check_duplicate_values(dataToCompare, "id"):
-            raise HTTPException(status_code=400, detail="Duplicate values not allowed")
-
-        #Create Refund Item
-        refund = Refunds(
-            id = uuid.uuid4(),
-            status = "pending",
-            user_id = user.get("id"),
-            created_date = datetime.now(timezone.utc),
-            last_modified_date = datetime.now(timezone.utc)
-        )
-        db.add(refund)
-
-        refunded_tickets = []
-        #Create Ticket_Payment_Refund items and update Ticket_payment status to refunded
-        for ticket_payment in ticket_payments_to_refund:
-            #check again if status of ticket payment is 'success'. Only refund if 'success'
-            if ticket_payment.status.lower() != "success":
-                raise HTTPException(status_code=400, detail="Ticket not eligible for refund")
-            
-            #code to refund to customer bank/e-wallet etc
-            #refund()
-
-            #create ticket_payment_refund items
-            ticket_payment_refund = TicketPaymentRefunds(
-                ticket_payment_id = ticket_payment.id,
-                amountx100 = ticket_payment.amountx100,
-                status = "success",
-                reason = "customer request",
-                refund_id = refund.id,
-                created_date = datetime.now(timezone.utc),
-                last_modified_date = datetime.now(timezone.utc)
-            )
-            db.add(ticket_payment_refund)
-
-            #update ticket_payment status
-            ticket_payment.status = "refunded"
-            db.add(ticket_payment)
-
-            #update ticket status
-            ticket_to_update = db.query(Tickets).filter(Tickets.id == ticket_payment.ticket_id).first()
-            ticket_to_update.status = "cancelled"
-            db.add(ticket_to_update)
-            refunded_tickets.append(ticket_to_update)
-        
-        refund.status = "success"
-        db.add(refund)
-
-        db.commit()
-        return refunded_tickets
-    except Exception as e:
-        print("Error refunding: "+str(e))
-        #If exception does not have status_code or detail properties, return default uninformative error message
-        if hasattr(e, "status_code") == False or hasattr(e, "detail") == False:
-            raise HTTPException(status_code=400, detail="Invalid Request")
-        
-        #If exception detail is known, return the error details, else return default uninformative error message
-        if string_exists_or_ends_with(e.detail, knownErrorStrings):
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-        else:
-            raise HTTPException(status_code=400, detail= "Invalid Request")
 
 
     

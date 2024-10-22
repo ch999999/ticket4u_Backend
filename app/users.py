@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,6 +8,7 @@ from app.schemas import User, UserCreate
 from app.database import SessionLocal
 from typing import Annotated
 from passlib.context import CryptContext
+from error_handling import handle_exception
 
 
 router = APIRouter()
@@ -23,6 +24,8 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+knownErrorStrings = ["Ticket not eligible for refund"]
+
 @router.post("/user/create", response_model=User)
 async def create_user(db: db_dependency, user: UserCreate):
     try:
@@ -33,8 +36,8 @@ async def create_user(db: db_dependency, user: UserCreate):
             first_name=user.first_name, 
             last_name=user.last_name, 
             password=bcrypt_context.hash(user.password),
-            date_of_registration=datetime.now(),
-            last_modified_date=datetime.now()
+            date_of_registration=datetime.now(timezone.utc),
+            last_modified_date=datetime.now(timezone.utc)
             )
 
         db.add(new_user)
@@ -49,11 +52,13 @@ async def create_user(db: db_dependency, user: UserCreate):
 async def get_user_by_id(user: user_dependency, db: db_dependency):
     try:
         user_result = db.query(Users).filter(Users.id==user.get("id")).first()
+        if str(user_result.id) != str(user.get("id")):
+            raise HTTPException(status_code = 401, detail = "Unauthorized")
         if user_result is not None:
             return user_result
         
         raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
         print("Error fetching user: "+str(e))
-        raise HTTPException(status_code= 400, detail= "Invalid Request.")
+        handle_exception(e, knownErrorStrings)
     

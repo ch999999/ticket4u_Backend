@@ -1,67 +1,171 @@
-# write endpoint to return the cinema for the showing, the hall for the showing, all the seats of the hall, and all available seats of the showing (to be considered available, 
-# the seat must not appear on any ticket for the showing that has a status of 'active' or 'unpaid') 
+from datetime import datetime
+from fastapi import APIRouter, Depends, Path, HTTPException
+from app.models import Showings, Payments, TicketPayments, Seats, Halls, Movies, Cinemas, Tickets
+from app.schemas import ShowingBase, ShowingCreate, Showing, HallBase, HallCreate, Hall, CinemaBase, CinemaCreate, Cinema, SeatBase, SeatCreate, Seat, MovieBase, MovieCreate, Movie
+from app.database import SessionLocal
+from typing import Annotated
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from app.auth import get_current_user
+from uuid import UUID
+from app.error_handling import handle_exception
 
-#Example input: { 5e655dfd-b0ed-4854-bbf4-4ac44d44983c }        (the showing_id, as a uuid type)
+router = APIRouter()
 
-# Example return/output: [
-#     {                                                     (the cinema data)
-#         id: '7524d45b-2502-4f4b-9a48-81b50003d414',
-#         name: "Galaxy Theater",
-#         address: "456 Oak Ave, Townsburg",
-#         phone: "555-0200"
-#     },
-#     {                                                      (the hall data)
-#         id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#         cinema_id: '7524d45b-2502-4f4b-9a48-81b50003d414',
-#         name: 'Hall C',
-#         capacity: 70
-#     },
-#     [                                                      (the data of ALL seats in the hall)
-#         {
-#             id: '02446dcd-2b88-4683-975f-094ced7bf27e',
-#             hall_id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#             row: 'A',
-#             number: '1',
-#             type: 'standard'
-#         },
-#         {
-#             id: '02abb836-af6e-4c0b-aca5-5e7503acd6b0',
-#             hall_id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#             row: 'B',
-#             number: '2',
-#             type: 'standard'
-#         },
-#         {
-#             id: '053445d3-fba3-4287-81be-41f25be6e4de',
-#             hall_id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#             row: 'C',
-#             number: '2',
-#             type: 'standard'
-#         },
-#         and so on.....
-#     ],
-#     [                                                        (the data of all seats found to be available)
-#         {
-#             id: '05a350d1-8079-4a26-b4f5-afe65b536d51',
-#             hall_id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#             row: 'D',
-#             number: '1',
-#             type: 'standard'
-#         },
-#         {
-#             id: '06deb63c-9e73-40f0-83b3-0e50c19ae7f5',
-#             hall_id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#             row: 'E',
-#             number: '2',
-#             type: 'standard'
-#         },
-#         {
-#             id: '070f4648-629a-4012-a1a8-e650e05dffe6',
-#             hall_id: '364e54a8-0bbd-4773-a96e-00e718b477be',
-#             row: 'F',
-#             number: '2',
-#             type: 'standard'
-#         },
-#         and so on.....
-#     ]
-# ]
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
+
+knownErrorStrings = ["Showings not found", "Movie not found for this showing","Cinema not found for this showing","Showing not found", "Not found", "Seats not found","No tickets found for this showing"]
+
+@router.get("/showings/all")
+async def get_all_showings(db: db_dependency):
+    try:
+        showings = db.query(Showings).all()
+        if showings is None:
+            raise HTTPException(status_code=404, detail="Showings not found")
+        return showings
+    except Exception as e:
+        print("Error fetching showings: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+    
+@router.get("/showings/{showing_id}")
+async def get_show_by_id(db: db_dependency, showing_id: UUID = Path()):
+    try:
+        showing_result = db.query(Showings).filter(Showings.id==showing_id).all()
+
+        if showing_result is None or len(showing_result) < 1:
+            raise HTTPException(status_code=404, detail="Showing not found")
+        
+        return showing_result
+        
+    except Exception as e:
+        print("Error fetching showing: "+str(e))
+        handle_exception(e, knownErrorStrings)
+    
+@router.get("/showings/{showing_id}/movie")
+async def get_showing_movie(db: db_dependency, showing_id: UUID):
+    try:
+        movie_id = db.query(Showings).filter(Showings.id == showing_id).first().movie_id
+        movie_result = db.query(Movies).filter(Movies.id == movie_id).first()
+        if movie_result is None or len(movie_result) < 1:
+            raise HTTPException(status_code=404, detail="Movie not found for this showing")
+        return movie_result
+    except Exception as e:
+        print("Error fetching movie: "+str(e))
+        handle_exception(e, knownErrorStrings)
+    
+
+    
+# '''movie,cinema,halls,both available and all seats'''
+# @router.get("/movies/{movie_id}")#, response_model=Movie)
+# async def get_movie_by_id(db: db_dependency, movie_id: UUID = Path()):
+#     try:
+#         movie_result = db.query(Movies).filter(Movies.id==movie_id).all()
+
+#         if movie_result is not None:
+#             return movie_result
+#         raise HTTPException(status_code=404, detail="Movie not found")
+#     except Exception as e:
+#         print("Error fetching showing: "+str(e))
+#         raise HTTPException(status_code= 400, detail= "Invalid Request.")
+
+@router.get("/showings/{showing_id}/cinema")
+async def get_showing_cinema(db: db_dependency, showing_id: UUID):
+    try:
+        hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
+        cinema_id = db.query(Halls).filter(Halls.id == hall_id).first().cinema_id
+        cinema_result = db.query(Cinemas).filter(Cinemas.id == cinema_id).first()
+        
+        if cinema_result is None or len(cinema_result) < 1:
+            raise HTTPException(status_code=404, detail="Cinema not found for this showing")
+        return cinema_result
+        
+    except Exception as e:
+        print("Error fetching showing cinema: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+
+@router.get("/showings/{showing_id}/hall")
+async def get_showing_hall(db: db_dependency, showing_id: UUID):
+    try:
+        hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
+        hall_result = db.query(Halls).filter(Halls.id == hall_id).first()
+
+        if hall_result is None or len(hall_result) < 1:
+            raise HTTPException(status_code=404, detail="Hall not found")
+        return hall_result
+    except Exception as e:
+        print("Error fetching showing hall: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+# @router.get("/cinemas/{cinema_id}")#, response_model=Cinema)
+# async def get_cinema_by_id(db: db_dependency, cinema_id: UUID = Path()):
+#     try:
+#         cinema_result = db.query(Cinemas).filter(Cinemas.id==cinema_id).first()
+
+#         if cinema_result is not None:
+#             return cinema_result
+#         raise HTTPException(status_code=404, detail="Cinema not found")
+#     except Exception as e:
+#         print("Error fetching showing: "+str(e))
+#         raise HTTPException(status_code= 400, detail= "Invalid Request.")
+
+@router.get("/showings/{showing_id}/seats")
+async def get_all_seats(db: db_dependency, showing_id: UUID):
+    try:
+        showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
+        hall_seats = db.query(Seats).filter(Seats.hall_id == showing_hall_id).all()
+        if hall_seats is None or len(hall_seats) < 1:
+            raise HTTPException(status_code=404, detail = "Seats not found")
+        return hall_seats
+    except Exception as e:
+        print("Error fetching seats: "+str(e))
+        handle_exception(e, knownErrorStrings)  
+
+
+@router.get("/showings/{showing_id}/seats/available")#, response_model=Seat)
+async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
+    try:
+        showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
+        seats_hall = db.query(Seats).filter(Seats.hall_id==showing_hall_id).all()
+        showing_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id,or_(Tickets.status.ilike("active"),Tickets.status.ilike("unpaid"))).all()
+        seats_available = []
+
+        for seat in seats_hall:
+            available = True
+            for ticket in showing_tickets:
+                if ticket.seat_id == seat.id:
+                    available = False
+                    break
+            if available:
+                seats_available.append(seat)
+        
+        if seats_available is not None and len(seats_available) > 0:
+            return seats_available
+        raise HTTPException(status_code=404, detail="Seats not found")
+    except Exception as e:
+        print("Error fetching showing: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+
+@router.get("/showings/{showing_id}/tickets")
+async def get_showing_tickets(db: db_dependency, user: user_dependency, showing_id: UUID):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+
+    try:
+        showing_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id, Tickets.user_id == user.get("id")).all()
+        if showing_tickets is None or len(showing_tickets) < 1:
+            raise HTTPException(status_code=404, detail="No tickets found for this showing")
+        return showing_tickets
+    except Exception as e:
+        print("Error fetching tickets: "+str(e))
+        handle_exception(e, knownErrorStrings)
