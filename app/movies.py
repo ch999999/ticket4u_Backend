@@ -1,14 +1,12 @@
-from datetime import datetime, timedelta, timezone
 from uuid import UUID
-import uuid
-from fastapi import APIRouter, Depends, Path, HTTPException, Body
-from app.models import Payments, TicketPayments, Tickets, Showings, Refunds, TicketPaymentRefunds, Cinemas, Movies, Halls
-from app.schemas import Payment, TicketPayment, Ticket, Cinema, Movie
+from fastapi import APIRouter, Depends, HTTPException
+from app.models import Tickets, Showings, Cinemas, Movies, Halls
+from app.schemas import Ticket, Movie
 from app.database import SessionLocal
-from typing import Annotated, List
+from typing import Annotated
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
-from app.error_handling import check_duplicate_values, string_exists_or_ends_with, handle_exception
+from app.error_handling import handle_exception
 
 router = APIRouter()
 
@@ -30,6 +28,7 @@ async def fetch_all_movies(db:db_dependency):
         movies = db.query(Movies).all()
         if movies is None or len(movies) < 1:
             raise HTTPException(status_code=404, detail="Not Found")
+        return movies
     except Exception as e:
         print("Error fetching Movies: "+ str(e))
         handle_exception(e, knownErrorStrings)
@@ -38,7 +37,7 @@ async def fetch_all_movies(db:db_dependency):
 @router.get("/movies/{movie_id}", response_model=Movie)
 async def fetch_movie_by_id(db: db_dependency, movie_id: str):
     try:
-        movie = db.query(Movies).filter(Movie.id == movie_id).first()
+        movie = db.query(Movies).filter(Movies.id == movie_id).first()
         if movie is None:
             raise HTTPException(status_code=404, detail="Not Found")
         return movie

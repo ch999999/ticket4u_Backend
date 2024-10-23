@@ -1,7 +1,5 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, Path, HTTPException
-from app.models import Showings, Payments, TicketPayments, Seats, Halls, Movies, Cinemas, Tickets
-from app.schemas import ShowingBase, ShowingCreate, Showing, HallBase, HallCreate, Hall, CinemaBase, CinemaCreate, Cinema, SeatBase, SeatCreate, Seat, MovieBase, MovieCreate, Movie
+from app.models import Showings, Seats, Halls, Movies, Cinemas, Tickets
 from app.database import SessionLocal
 from typing import Annotated
 from sqlalchemy.orm import Session

@@ -1,14 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import UUID
-import uuid
-from fastapi import APIRouter, Depends, Path, HTTPException, Body
-from app.models import Payments, TicketPayments, Tickets, Showings, Refunds, TicketPaymentRefunds
-from app.schemas import Payment, TicketPayment, Ticket
+from fastapi import APIRouter, Depends, HTTPException, Body
+from app.models import Payments, TicketPayments, Tickets
+from app.schemas import Payment, Ticket
 from app.database import SessionLocal
-from typing import Annotated, List
+from typing import Annotated
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
-from app.error_handling import check_duplicate_values, string_exists_or_ends_with, handle_exception
+from app.error_handling import handle_exception
 
 router = APIRouter()
 

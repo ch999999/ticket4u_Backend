@@ -165,35 +165,5 @@ class TicketPaymentRefunds(Base):
     refund = relationship("Refunds", back_populates="ticket_payment_refunds")
 
 
-# class Discounts(Base):
-#     __tablename__ = "Discounts"
-
-#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-#     code = Column(String)
-#     type = Column(String)
-#     amountx100 = Column(Integer)
-#     percentx100 = Column(Integer)
-#     valid_from = Column(DateTime(timezone=True))
-#     valid_to = Column(DateTime(timezone=True))
-
-#     tickets = relationship("Tickets", back_populates="discount")
-
-#class Tickets(Base):
-#     __tablename__ = "Tickets"
-
-#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-#     showing_id = Column(UUID(as_uuid=True), ForeignKey("Showings.id"))
-#     user_id = Column(UUID(as_uuid=True), ForeignKey("Users.id"))
-#     seat_id = Column(UUID(as_uuid=True), ForeignKey("Seats.id"))
-#     purchase_time = Column(DateTime(timezone=True))
-#     pricex100 = Column(Integer)
-#     status = Column(String)
-#     #discount_id = Column(UUID(as_uuid=True), ForeignKey("Discounts.id"))
-
-#     user = relationship("Users", back_populates="tickets")
-#     showing = relationship("Showings", back_populates="tickets")
-#     seat = relationship("Seats", back_populates="tickets")
-#     #discount = relationship("Discounts", back_populates="tickets")
-#     ticket_payments = relationship("TicketPayments", back_populates="ticket")
 
 
