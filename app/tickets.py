@@ -9,7 +9,7 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from uuid import UUID
-from app.error_handling import check_duplicate_values, string_exists_or_ends_with
+from app.error_handling import check_duplicate_values, string_exists_or_ends_with, handle_exception
 
 router = APIRouter()
 
@@ -25,7 +25,8 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 knownErrorStrings = ["Duplicate seats not allowed", "Only one showing allowed per ticket(s) creation request",
                      "Seat requested doesn't exist in hall of showing requested", "already taken for this showing",
-                     "No tickets found for you for this movie","No tickets found for you for this showing"]
+                     "No tickets found for you for this movie","No tickets found for you for this showing","You have no tickets yet"
+                     ,"Ticket not found","Not authorized"]
 
 @router.post("/tickets/create", response_model=Payment)
 async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates: list[TicketCreate]):
@@ -102,94 +103,43 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
         return new_payment
     except Exception as e:
         print("Error creating ticket: "+str(e))
-
-        #If exception does not have status_code or detail properties, return default uninformative error message
-        if hasattr(e, "status_code") == False or hasattr(e, "detail") == False:
-            raise HTTPException(status_code=400, detail="Invalid Request")
-
-        #If exception detail is known, return the error details, else return default uninformative error message
-        if string_exists_or_ends_with(e.detail, knownErrorStrings):
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-        else:
-            raise HTTPException(status_code=400, detail= "Invalid Request")
+        handle_exception(e, knownErrorStrings)
 
 
-
-
-    
 #get all tickets belonging to a user
-@router.get("/tickets", response_model=list[Ticket])
+@router.get("/tickets/all", response_model=list[Ticket])
 async def get_all_tickets_by_user(user: user_dependency, db: db_dependency):
-    try:
-        if user is None:
-            raise HTTPException(status_code=401, detail="Not Authenticated")
-        
-        user_tickets = db.query(Tickets).filter(Tickets.user_id == user.get("id")).all()
-        return user_tickets
-    except Exception as e:
-        print("Error fetching tickets: "+str(e))
-        raise HTTPException(status_code=400, detail="Invalid Request")
     
-
-#get all tickets belonging to a user for a movie
-@router.get("/tickets/movie/{movie_id}", response_model=list[Ticket])
-async def get_all_tickets_by_movie(user: user_dependency, db: db_dependency, movie_id: UUID):
-    try:
-        if user is None:
-            raise HTTPException(status_code=401, detail="Not Authenticated")
-        
-        user_tickets = []
-        movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id).all()
-        
-        for movie_showing in movie_showings:
-            tickets = db.query(Tickets).filter(Tickets.showing_id == movie_showing.id, Tickets.user_id == user.get("id")).all()
-            for ticket in tickets:
-                user_tickets.append(ticket)
-        
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    try:   
+        user_tickets = db.query(Tickets).filter(Tickets.user_id == user.get("id")).all()
         if user_tickets is None or len(user_tickets) < 1:
-            raise HTTPException(status_code=404, detail="No tickets found for you for this movie")
-        
+            raise HTTPException(status_code=404, detail="You have no tickets yet")
         return user_tickets
     except Exception as e:
         print("Error fetching tickets: "+str(e))
+        handle_exception(e, knownErrorStrings)
 
-        #If exception does not have status_code or detail properties, return default uninformative error message
-        if hasattr(e, "status_code") == False or hasattr(e, "detail") == False:
-            raise HTTPException(status_code=400, detail="Invalid Request")
-
-        #If exception detail is known, return the error details, else return default uninformative error message
-        if string_exists_or_ends_with(e.detail, knownErrorStrings):
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-        else:
-            raise HTTPException(status_code=400, detail= "Invalid Request")
-        
-
-#get all tickets belonging to a user for a showing
-@router.get("/tickets/showing/{showing_id}", response_model=list[Ticket])
-async def get_all_tickets_by_showing(user: user_dependency, db: db_dependency, showing_id: UUID):
+@router.get("/tickets/{ticket_id}")
+async def get_ticket_by_id(user: user_dependency, db: db_dependency, ticket_id: UUID):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    
     try:
-        if user is None:
-            raise HTTPException(status_code=401, detail="Not Authenticated")
-        
-        user_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id, Tickets.user_id == user.get("id")).all()
-
-        if user_tickets is None or len(user_tickets) < 1:
-            raise HTTPException(status_code=404, detail="No tickets found for you for this showing")
-        
-        return user_tickets
-        
+        ticket = db.query(Tickets).filter(Tickets.id == ticket_id).first()
+        if ticket is None:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        if str(ticket.user_id) != str(user.get("id")):
+            raise HTTPException(status_code=401, detail="Not authorized")
+        return ticket
     except Exception as e:
-        print("Error fetching tickets: "+str(e))
+        print("Error fetching ticket: "+str(e))
+        handle_exception(e, knownErrorStrings)
+        
+    
+        
 
-        #If exception does not have status_code or detail properties, return default uninformative error message
-        if hasattr(e, "status_code") == False or hasattr(e, "detail") == False:
-            raise HTTPException(status_code=400, detail="Invalid Request")
-
-        #If exception detail is known, return the error details, else return default uninformative error message
-        if string_exists_or_ends_with(e.detail, knownErrorStrings):
-            raise HTTPException(status_code=e.status_code, detail=e.detail)
-        else:
-            raise HTTPException(status_code=400, detail= "Invalid Request")
         
 
 

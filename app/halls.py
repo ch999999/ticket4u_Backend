@@ -8,7 +8,7 @@ from app.database import SessionLocal
 from typing import Annotated, List
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
-from app.error_handling import check_duplicate_values, string_exists_or_ends_with
+from app.error_handling import check_duplicate_values, string_exists_or_ends_with, handle_exception
 
 router = APIRouter()
 
@@ -22,9 +22,9 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-knownErrorStrings = ["Not Found"]
+knownErrorStrings = ["Not Found","Seats not found", "Halls not found"]
 
-@router.get("/halls/{hall_id}")#, response_model=Hall)
+@router.get("/halls/{hall_id}")
 async def get_hall_by_id(db: db_dependency, hall_id: UUID = Path()):
     try:
         hall_result = db.query(Halls).filter(Halls.id==hall_id).first()
@@ -34,16 +34,16 @@ async def get_hall_by_id(db: db_dependency, hall_id: UUID = Path()):
         raise HTTPException(status_code=404, detail="Halls not found")
     except Exception as e:
         print("Error fetching showing: "+str(e))
-        raise HTTPException(status_code= 400, detail= "Invalid Request.")
+        handle_exception(e, knownErrorStrings)
     
-@router.get("/halls/{hall_id}/seats")#, response_model=Seat)
+@router.get("/halls/{hall_id}/seats")
 async def get_seats_by_hallid(db: db_dependency, hall_id: UUID = Path()):
     try:
         hall_seats = db.query(Seats).filter(Seats.hall_id==hall_id).all()
 
-        if hall_seats is not None:
+        if hall_seats is not None and len(hall_seats) > 1:
             return hall_seats
         raise HTTPException(status_code=404, detail="Seats not found")
     except Exception as e:
         print("Error fetching showing: "+str(e))
-        raise HTTPException(status_code= 400, detail= "Invalid Request.")
+        handle_exception(e, knownErrorStrings)

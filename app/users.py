@@ -8,7 +8,7 @@ from app.schemas import User, UserCreate
 from app.database import SessionLocal
 from typing import Annotated
 from passlib.context import CryptContext
-from error_handling import handle_exception
+from app.error_handling import handle_exception
 
 
 router = APIRouter()
