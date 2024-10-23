@@ -1,14 +1,14 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.auth import get_current_user
+from app.auth import get_current_user, authenticate_user, create_access_token
 from app.models import Users
 from app.schemas import User, UserCreate
 from app.database import SessionLocal
 from typing import Annotated
 from passlib.context import CryptContext
-from error_handling import handle_exception
+from app.error_handling import handle_exception
 
 
 router = APIRouter()
@@ -24,7 +24,7 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-knownErrorStrings = ["Ticket not eligible for refund"]
+knownErrorStrings = ["Ticket not eligible for refund", "User not found"]
 
 @router.post("/user/create", response_model=User)
 async def create_user(db: db_dependency, user: UserCreate):
@@ -60,5 +60,28 @@ async def get_user_by_id(user: user_dependency, db: db_dependency):
         raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
         print("Error fetching user: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+
+@router.put("/user/edit")
+async def edit_user(user: user_dependency,db: db_dependency, user_request: UserCreate, password: str):
+    try:
+        user_result = authenticate_user(user.get("username"), password, db)
+        if user_result is not None:
+            user_result.username = user_request.username
+            user_result.email = user_request.email
+            user_result.phone = user_request.phone
+            user_result.first_name = user_request.first_name
+            user_result.last_name = user_request.last_name
+            user_result.password = bcrypt_context.hash(user_request.password)
+            user_result.last_modified_date = datetime.now(timezone.utc)
+            db.add(user_result)
+            db.commit()
+            access_token = create_access_token(user_request.username, str(user_result.id), timedelta(minutes=30))
+            return {"access_token": access_token, "token_type": "bearer"}
+            
+        raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        print("Error editing user: "+str(e))
         handle_exception(e, knownErrorStrings)
     

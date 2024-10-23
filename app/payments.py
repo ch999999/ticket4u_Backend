@@ -1,14 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from uuid import UUID
-import uuid
-from fastapi import APIRouter, Depends, Path, HTTPException, Body
-from app.models import Payments, TicketPayments, Tickets, Showings, Refunds, TicketPaymentRefunds
-from app.schemas import Payment, TicketPayment, Ticket
+from fastapi import APIRouter, Depends, HTTPException, Body
+from app.models import Payments, TicketPayments, Tickets
+from app.schemas import Payment, Ticket
 from app.database import SessionLocal
-from typing import Annotated, List
+from typing import Annotated
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
-from app.error_handling import check_duplicate_values, string_exists_or_ends_with, handle_exception
+from app.error_handling import handle_exception
 
 router = APIRouter()
 
@@ -45,7 +44,7 @@ async def get_payment_by_id(user: user_dependency, db: db_dependency, payment_id
     
     try:
         payment = db.query(Payments).filter(Payments.id == payment_id).first()
-        if payment is None or len(payment) < 1:
+        if payment is None:
             raise HTTPException(status_code=404, detail="Payment not found")
         if str(payment.user_id) != str(user.get("id")):
             raise HTTPException(status_code=401, detail="Unauthorized")
@@ -61,11 +60,11 @@ async def fetch_payment_ticket_payments(user: user_dependency, db: db_dependency
     
     try:
         payment = db.query(Payments).filter(Payments.id == payment_id).first()
-        if payment is None or len(payment) < 1:
+        if payment is None:
             raise HTTPException(status_code=404, detail="Payment not found")
         if str(payment.user_id) != str(user.get("id")):
             raise HTTPException(status_code=401, detail="Unauthorized")
-        ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment == payment_id).all()
+        ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id == payment_id).all()
         if ticket_payments is None or len(ticket_payments) < 1:
             raise HTTPException(status_code=404, detail="Ticket payments not found")
         return ticket_payments

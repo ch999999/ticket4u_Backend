@@ -1,0 +1,100 @@
+Showings
+GET:
+- /showings/all 0
+  - fetches all showings
+- /showings/{showing_id} 0
+  - fetches a showing by it's id
+- /showings/{showing_id}/movie 0
+  - fetches the movie being shown in the showing
+- /showings/{showing_id}/cinema 0
+  - fetches the cinema the showing is being held at
+- /showings/{showing_id}/hall 0
+  - fetches the hall the showing is being held at
+- /showings/{showing_id}/seats = /halls/{hall_id}/seats 0
+  - fetches all the seats in the hall the showing is being held at
+- /showings/{showing_id}/seats/available 0
+  - fetches all the available seats in the hall the showing is being held at
+- /showings/{showing_id}/tickets (auth required) 0
+  - fetches all the tickets for a showing belonging to the user
+
+Movies
+GET:
+- /movies/all 0
+  - fetches all movies
+- /movies/{movie_id} 0
+  - fetches a movie by it's id
+- /movies/{movie_id}/showings 0
+  - fetches all the showings for the movie
+- /movies/{movie_id}/cinemas 0
+  - fetches all cinemas that are showing the movie
+- /movies/{movie_id}/tickets 0 (auth required)
+  - fetches all the tickets for a movie belonging to the user
+
+
+Tickets (auth required for all)
+GET:
+- /tickets/all 0
+  - fetches all tickets belinging to the user
+- /tickets/{ticket_id} 0
+  - fetches a ticket belonging to a user by it's id
+POST:
+- /tickets/create (input: list[TicketCreate]) 0
+  - creates one or more tickets based on input
+
+Cinemas
+GET:
+- /cinemas/all 0
+  - fetches all cinemas
+- /cinemas/{cinema_id} 0
+  - fetches a cinema by it's id
+- /cinemas/{cinema_id}/movies 0
+  - fetches all movies being shown at the cinema
+- /cinemas/{cinema_id}/halls 0
+  - fetches all halls at the cinema
+- /cinemas/{cinema_id}/showings 0
+  - fetches all showings being held at the cinema
+
+Halls
+GET:
+- /halls/{hall_id} 0
+  - fetches a hall by it's id
+- /halls/{hall_id}/seats 0
+  - fetches all the seats in the hall
+
+
+Payments (auth required for all)
+GET:
+- /payments/all 0
+  - fetches all payments belonging to the user
+- /payments/{payment_id} 0
+  - fetches a payment by it's id
+- /payments/{payment_id}/ticket_payments 0
+  - fetches all ticket_payment items under the payment
+- /payments/{payment_id}/tickets 0
+  - fetches all tickets under the payment
+PUT:
+- /payments/{payment_id}/pay 0
+  - updates the status of a payment to successful
+
+Refunds (auth required for all)
+GET:
+- /refunds/all 0
+  - fetches all refund belonging to a user
+- /refunds/{refund_id} 0
+  - fetches a refund by it's id
+- /refunds/{refund_id}/ticket_payment_refunds 0
+  - fetches all ticket_payment_refund items under a refund
+POST:
+- /refunds/refund_tickets (input: list[ticket_id]) 0
+  - refund tickets based on a list of ticket_ids
+
+Users
+GET:
+- /users (auth required) 0
+  - fetches the user
+POST:
+- /users/create (input: UserCreate) 0
+  - creates new user
+PUT:
+- /users/edit (input: UserCreate) 
+  - edit user details
