@@ -66,6 +66,7 @@ class Movies(Base):
     release_date = Column(Date)
     last_showing_date = Column(Date)
     image_url = Column(String)
+    trailer_url = Column(String)
 
     showings = relationship("Showings", back_populates="movie")
 
