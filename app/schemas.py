@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime, date
 from typing import Optional
 from uuid import UUID
@@ -10,7 +10,7 @@ class Token(BaseModel):
 
 class UserBase(BaseModel):
     username: str
-    email: EmailStr
+    email: str
     phone: str
     first_name: str
     last_name: str
@@ -74,6 +74,7 @@ class MovieBase(BaseModel):
     duration: int
     release_date: date
     last_showing_date: date
+    image_url: str
 
 
 class MovieCreate(MovieBase):

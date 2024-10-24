@@ -60,11 +60,12 @@ class Movies(Base):
     __tablename__ = "Movies"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    title = Column(String)
+    title = Column(String, unique=True, index=True)
     genre = Column(String)
     duration = Column(Integer)
     release_date = Column(Date)
     last_showing_date = Column(Date)
+    image_url = Column(String)
 
     showings = relationship("Showings", back_populates="movie")
 
