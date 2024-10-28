@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, Path, HTTPException
+from pydantic import Field
 from app.models import Showings, Seats, Halls, Movies, Cinemas, Tickets
 from app.database import SessionLocal
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.auth import get_current_user
 from uuid import UUID
 from app.error_handling import handle_exception
+from datetime import date
 
 router = APIRouter()
 
@@ -142,3 +144,9 @@ async def get_showing_tickets(db: db_dependency, user: user_dependency, showing_
     except Exception as e:
         print("Error fetching tickets: "+str(e))
         handle_exception(e, knownErrorStrings)
+
+
+        
+            
+
+
