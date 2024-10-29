@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import Field
@@ -132,10 +132,12 @@ async def search_showings(db: db_dependency, duration1: int = Query(default=0), 
         handle_exception(e, knownErrorStrings)
 
 def end_of_day(d: date) -> datetime:
-    return datetime.combine(d, time(23, 59, 59))
+    day_end = datetime.combine(d, time(23, 59, 59))
+    return day_end.replace(tzinfo=timezone.utc)
 
 def midnight_of(d: date) -> datetime:
-    return datetime.combine(d, time.min)
+    midnight = datetime.combine(d, time.min)
+    return midnight.replace(tzinfo=timezone.utc)
 
 
 @router.get("/movies/{movie_id}/showings/search/")
