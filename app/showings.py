@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, Path, HTTPException
+from fastapi import APIRouter, Depends, Path, HTTPException, Query
+from pydantic import Field
 from app.models import Showings, Seats, Halls, Movies, Cinemas, Tickets
 from app.database import SessionLocal
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import and_, or_, select
 from app.auth import get_current_user
 from uuid import UUID
 from app.error_handling import handle_exception
+from datetime import date, datetime, time, timezone
 
 router = APIRouter()
 
@@ -20,7 +22,7 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-knownErrorStrings = ["Showings not found", "Movie not found for this showing","Cinema not found for this showing","Showing not found", "Not found", "Seats not found","No tickets found for this showing"]
+knownErrorStrings = ["Showings not found","No showings found for this search criteria", "Movie not found for this showing","Cinema not found for this showing","Showing not found", "Not found", "Seats not found","No tickets found for this showing"]
 
 @router.get("/showings/all")
 async def get_all_showings(db: db_dependency):
@@ -142,3 +144,51 @@ async def get_showing_tickets(db: db_dependency, user: user_dependency, showing_
     except Exception as e:
         print("Error fetching tickets: "+str(e))
         handle_exception(e, knownErrorStrings)
+
+def end_of_day(d: date) -> datetime:
+    day_end = datetime.combine(d, time(23, 59, 59))
+    return day_end.replace(tzinfo=timezone.utc)
+
+def midnight_of(d: date) -> datetime:
+    midnight = datetime.combine(d, time.min)
+    return midnight.replace(tzinfo=timezone.utc)
+
+@router.get("/showings/search/")
+async def search_showings(db: db_dependency, duration1: int = Query(default=0), duration2: int = Query(default=500), start_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), start_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
+    try:
+        join_results = []
+        join_result = db.query(Movies).join(Showings).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Showings.start_time >= midnight_of(start_date1), Showings.start_time <= end_of_day(start_date2))).all()
+        if join_result is None or len(join_result) < 1:
+            raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+        for movie in join_result:
+            for showing in movie.showings:
+                dictResult = {
+                      "showing_id": showing.id,
+                      "hall_id": showing.hall_id,
+                      "movie_id": movie.id,
+                      "start_time": showing.start_time,
+                      "pricex100": showing.pricex100,
+                      "duration": movie.duration,
+                      "title": movie.title,
+                      "genre": movie.genre,
+                      "release_date": movie.release_date,
+                      "last_showing_date": movie.last_showing_date 
+                     }
+                join_results.append(dictResult)
+        final_results = []
+        for result in join_results:
+            if (result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
+                final_results.append(result)
+        if final_results is None or len(final_results) < 1:
+            raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+        return final_results
+        
+    except Exception as e:
+        print("Error fetching showings: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
+
+        
+            
+
+

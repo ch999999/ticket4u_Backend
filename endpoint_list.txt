@@ -16,6 +16,10 @@ GET:
   - fetches all the available seats in the hall the showing is being held at
 - /showings/{showing_id}/tickets (auth required) 0
   - fetches all the tickets for a showing belonging to the user
+- /showings/search/ 0
+  - search by duration and or start_time
+
+
 
 Movies
 GET:
@@ -29,6 +33,11 @@ GET:
   - fetches all cinemas that are showing the movie
 - /movies/{movie_id}/tickets 0 (auth required)
   - fetches all the tickets for a movie belonging to the user
+- /movies/search/ 0
+  - search by title, genre, duration, release_date, last_showing_date
+- /movies/{movie_id}/showings/search/ 0
+  - search for showings for a specific movie by showing_time
+
 
 
 Tickets (auth required for all)
