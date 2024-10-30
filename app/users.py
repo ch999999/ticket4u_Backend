@@ -23,9 +23,9 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-knownErrorStrings = ["Ticket not eligible for refund", "User not found"]
+knownErrorStrings = ["Ticket not eligible for refund", "User not found","Successfully created user, but failed to login"]
 
-@router.post("/user/create", response_model=User)
+@router.post("/user/create")
 async def create_user(db: db_dependency, user: UserCreate):
     try:
         new_user = Users(
@@ -41,10 +41,16 @@ async def create_user(db: db_dependency, user: UserCreate):
 
         db.add(new_user)
         db.commit()
-        return new_user
+        user_result = db.query(Users).filter(Users.username == new_user.username).first()
+        if user_result is None:
+            raise HTTPException(status_code=400, detail="Successfully created user, but failed to login")
+        access_token = create_access_token(user_result.username, str(user_result.id), timedelta(minutes=30))
+        if access_token is None:
+            raise HTTPException(status_code=400, detail="Successfully created user, but failed to login")
+        return {"access_token": access_token, "token_type": "bearer"}
     except Exception as e:
         print("Error creating user: "+str(e))
-        raise HTTPException(status_code= 400, detail= "Invalid Input.")
+        raise HTTPException(status_code= 400, detail= "Invalid Input")
     
 
 @router.get("/user", response_model=User)

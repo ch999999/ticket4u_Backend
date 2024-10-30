@@ -88,7 +88,7 @@ async def fetch_movie_cinemas(db: db_dependency, movie_id: UUID):
 
 
 #get all tickets belonging to a user for a movie
-@router.get("/movies/{showing_id}/tickets", response_model=list[Ticket])
+@router.get("/movies/{movie_id}/tickets", response_model=list[Ticket])
 async def get_all_tickets_by_movie(user: user_dependency, db: db_dependency, movie_id: UUID):
     if user is None:
         raise HTTPException(status_code=401, detail="Not Authenticated")
