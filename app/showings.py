@@ -39,9 +39,9 @@ async def get_all_showings(db: db_dependency):
 @router.get("/showings/{showing_id}")
 async def get_show_by_id(db: db_dependency, showing_id: UUID = Path()):
     try:
-        showing_result = db.query(Showings).filter(Showings.id==showing_id).all()
+        showing_result = db.query(Showings).filter(Showings.id==showing_id).first()
 
-        if showing_result is None or len(showing_result) < 1:
+        if showing_result is None:
             raise HTTPException(status_code=404, detail="Showing not found")
         
         return showing_result

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Body
+from sqlalchemy import desc
 from app.models import Payments, TicketPayments, Tickets
 from app.schemas import Payment, Ticket
 from app.database import SessionLocal
@@ -21,7 +22,7 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-knownErrorStrings = ["Payment does not belong to this user","Ticket payments not found","Payment not found","Unauthorized","No payments found for this user", "Payment attempt already made", "Ticket ineligible for refund", "Ticket not eligible for refund","Duplicate values not allowed"]
+knownErrorStrings = ["Payment does not belong to this user","No successful payments found for this user","Ticket payments not found","Payment not found","Unauthorized","No payments found for this user", "Payment attempt already made", "Ticket ineligible for refund", "Ticket not eligible for refund","Duplicate values not allowed"]
 
 @router.get("/payments/all")
 async def get_all_payments(user: user_dependency, db: db_dependency):
@@ -29,13 +30,29 @@ async def get_all_payments(user: user_dependency, db: db_dependency):
         raise HTTPException(status_code=401, detail="Not Authenticated")
     
     try:
-        user_payments = db.query(Payments).filter(Payments.user_id == user.get("id")).all()
-        if user_payments is None or len(user_payments) < 1:
-            raise HTTPException(status_code=404, detail="No payments found for this user")
+        user_payments = db.query(Payments).filter(Payments.user_id == user.get("id")).order_by(desc(Payments.created_date)).all()
+        # if user_payments is None or len(user_payments) < 1:
+        #     raise HTTPException(status_code=404, detail="No payments found for this user")
         return user_payments
     except Exception as e:
         print("Error fetching payments: "+str(e))
         handle_exception(e, knownErrorStrings)
+
+
+@router.get("/payments/all/success")
+async def get_all_payments(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    
+    try:
+        user_payments = db.query(Payments).filter(Payments.user_id == user.get("id"), Payments.status.ilike("success")).order_by(desc(Payments.created_date)).all()
+        # if user_payments is None or len(user_payments) < 1:
+        #     raise HTTPException(status_code=404, detail="No successful payments found for this user")
+        return user_payments
+    except Exception as e:
+        print("Error fetching payments: "+str(e))
+        handle_exception(e, knownErrorStrings)
+
 
 @router.get("/payments/{payment_id}")
 async def get_payment_by_id(user: user_dependency, db: db_dependency, payment_id: UUID):
