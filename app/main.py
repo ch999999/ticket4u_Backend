@@ -2,7 +2,7 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import models, auth, users, tickets, payments, showings, cinemas, refunds, movies
+from app import models, auth, users, tickets, payments, showings, cinemas, refunds, movies, seats
 from app.database import SessionLocal, engine
 
 app = FastAPI()
@@ -32,6 +32,7 @@ app.include_router(showings.router)
 app.include_router(cinemas.router)
 app.include_router(refunds.router)
 app.include_router(movies.router)
+app.include_router(seats.router)
 
 def get_db():
     db = SessionLocal()
