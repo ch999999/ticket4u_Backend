@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from app.models import Tickets, Showings, Cinemas, Movies, Halls
 from app.schemas import Ticket, Movie
 from app.database import SessionLocal
-from typing import Annotated, Optional
+from typing import Annotated, List, Optional
 from sqlalchemy.orm import Session
 from app.auth import get_current_user
 from app.error_handling import handle_exception
@@ -28,7 +28,7 @@ knownErrorStrings = ["Not Found","Showings not found","Bad request","No tickets 
 @router.get("/movies/all")
 async def fetch_all_movies(db:db_dependency):
     try:
-        movies = db.query(Movies).all()
+        movies = db.query(Movies).filter(Movies.release_date <= datetime.now(timezone.utc), Movies.last_showing_date >= datetime.now(timezone.utc)).all()
         if movies is None or len(movies) < 1:
             raise HTTPException(status_code=404, detail="Not Found")
         return movies
@@ -53,8 +53,8 @@ async def fetch_movie_by_id(db: db_dependency, movie_id: str):
 async def fetch_movie_showings(db: db_dependency, movie_id: UUID):
     try: 
         movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id).all()
-        if movie_showings is None or len(movie_showings) < 1:
-            raise HTTPException(status_code=404, detail="Showings not found")
+        # if movie_showings is None:
+        #     raise HTTPException(status_code=404, detail="Showings not found")
         return movie_showings
     except Exception as e:
         print("Error fetching movie showings: "+str(e))
@@ -79,8 +79,8 @@ async def fetch_movie_cinemas(db: db_dependency, movie_id: UUID):
             if movie_cinema is None:
                 raise HTTPException(status_code=400, detail = "Bad request")
             movie_cinemas.append(movie_cinema)
-        if len(movie_cinemas) < 1:
-            raise HTTPException(status_code=404, detail = "Not Found")
+        # if len(movie_cinemas) < 1:
+        #     raise HTTPException(status_code=404, detail = "Not Found")
         return movie_cinemas
     except Exception as e:
         print("Error fetching movie cinemas: "+str(e))
@@ -102,8 +102,8 @@ async def get_all_tickets_by_movie(user: user_dependency, db: db_dependency, mov
             for ticket in tickets:
                 user_tickets.append(ticket)
         
-        if user_tickets is None or len(user_tickets) < 1:
-            raise HTTPException(status_code=404, detail="No tickets found for you for this movie")
+        # if user_tickets is None or len(user_tickets) < 1:
+        #     raise HTTPException(status_code=404, detail="No tickets found for you for this movie")
         
         return user_tickets
     except Exception as e:
@@ -118,14 +118,14 @@ async def search_showings(db: db_dependency, duration1: int = Query(default=0), 
         #Genre not provided:
         if genre is None:
             movies = db.query(Movies).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Movies.release_date >= release_date1, Movies.release_date <= release_date2), and_(Movies.last_showing_date >= last_showing_date1, Movies.last_showing_date <= last_showing_date2), Movies.title.ilike(f"{title}%")).all()
-            if movies is None or len(movies) < 1:
-                raise HTTPException(status_code=404, detail="No movies found")
+            # if movies is None or len(movies) < 1:
+            #     raise HTTPException(status_code=404, detail="No movies found")
             return movies
         
         #Genre provided
         movies = movies = db.query(Movies).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Movies.release_date >= release_date1, Movies.release_date <= release_date2), and_(Movies.last_showing_date >= last_showing_date1, Movies.last_showing_date <= last_showing_date2), Movies.title.ilike(f"{title}%"), Movies.genre.ilike(genre)).all()
-        if movies is None or len(movies) < 1:
-            raise HTTPException(status_code=404, detail="No movies found")
+        # if movies is None or len(movies) < 1:
+        #     raise HTTPException(status_code=404, detail="No movies found")
         return movies
     except Exception as e:
         print("ERROR: "+str(e))
@@ -140,13 +140,37 @@ def midnight_of(d: date) -> datetime:
     return midnight.replace(tzinfo=timezone.utc)
 
 
-@router.get("/movies/{movie_id}/showings/search/")
-async def search_movie_showings(db: db_dependency, movie_id: UUID, showing_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), showing_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
+# @router.get("/movies/{movie_id}/showings/search/")
+# async def search_movie_showings(db: db_dependency, movie_id: UUID, showing_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), showing_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
+#         try:
+#             movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id, and_(Showings.start_time >= midnight_of(showing_date1), Showings.start_time <= end_of_day(showing_date2))).all()
+#             if movie_showings is None:
+#                 raise HTTPException(status_code=404, detail="No showings found for this movie in this time range")
+#             return movie_showings
+#         except Exception as e:
+#             print("Error fetching movie showings: "+str(e))
+#             handle_exception(e, knownErrorStrings)
+
+
+@router.get("/movies/showings/search/")
+async def search_movie_showings(db: db_dependency, movie_ids: list[UUID] = Query(default=[], min_length=1), showing_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), showing_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
         try:
-            movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id, and_(Showings.start_time >= midnight_of(showing_date1), Showings.start_time <= end_of_day(showing_date2))).all()
-            if movie_showings is None or len(movie_showings) < 1:
-                raise HTTPException(status_code=404, detail="No showings found for this movie in this time range")
-            return movie_showings
+            results = []
+            for movie_id in movie_ids:
+                movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id, and_(Showings.start_time >= midnight_of(showing_date1), Showings.start_time <= end_of_day(showing_date2))).order_by(Showings.start_time).all()
+                for movie_showing in movie_showings:
+                    cinema_id = db.query(Halls).filter(Halls.id == movie_showing.hall_id).first().cinema_id
+                    cinema = db.query(Cinemas).filter(Cinemas.id == cinema_id).first()
+                    movie = db.query(Movies).filter(Movies.id == movie_showing.movie_id).first()
+                    dict = movie_showing.__dict__
+                    dict["cinema_name"] = cinema.name
+                    dict["cinema_id"] = cinema.id
+                    dict["movie_id"] = movie_id
+                    dict["title"] = movie.title
+                    dict["genre"] = movie.genre
+                    dict["image_url"] = movie.image_url
+                    results.append(dict)
+            return results
         except Exception as e:
             print("Error fetching movie showings: "+str(e))
             handle_exception(e, knownErrorStrings)

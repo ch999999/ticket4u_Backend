@@ -27,7 +27,7 @@ knownErrorStrings = ["Showings not found","No showings found for this search cri
 @router.get("/showings/all")
 async def get_all_showings(db: db_dependency):
     try:
-        showings = db.query(Showings).all()
+        showings = db.query(Showings).filter(Showings.start_time > datetime.now(timezone.utc)).order_by(Showings.start_time).all()
         if showings is None:
             raise HTTPException(status_code=404, detail="Showings not found")
         return showings
@@ -98,8 +98,8 @@ async def get_all_seats(db: db_dependency, showing_id: UUID):
     try:
         showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
         hall_seats = db.query(Seats).filter(Seats.hall_id == showing_hall_id).all()
-        if hall_seats is None or len(hall_seats) < 1:
-            raise HTTPException(status_code=404, detail = "Seats not found")
+        # if hall_seats is None or len(hall_seats) < 1:
+        #     raise HTTPException(status_code=404, detail = "Seats not found")
         return hall_seats
     except Exception as e:
         print("Error fetching seats: "+str(e))
@@ -122,10 +122,10 @@ async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
                     break
             if available:
                 seats_available.append(seat)
-        
-        if seats_available is not None and len(seats_available) > 0:
-            return seats_available
-        raise HTTPException(status_code=404, detail="Seats not found")
+        return seats_available
+        # if seats_available is not None and len(seats_available) > 0:
+        #     return seats_available
+        # raise HTTPException(status_code=404, detail="Seats not found")
     except Exception as e:
         print("Error fetching showing: "+str(e))
         handle_exception(e, knownErrorStrings)
@@ -138,8 +138,8 @@ async def get_showing_tickets(db: db_dependency, user: user_dependency, showing_
 
     try:
         showing_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id, Tickets.user_id == user.get("id")).all()
-        if showing_tickets is None or len(showing_tickets) < 1:
-            raise HTTPException(status_code=404, detail="No tickets found for this showing")
+        # if showing_tickets is None or len(showing_tickets) < 1:
+        #     raise HTTPException(status_code=404, detail="No tickets found for this showing")
         return showing_tickets
     except Exception as e:
         print("Error fetching tickets: "+str(e))
@@ -157,9 +157,9 @@ def midnight_of(d: date) -> datetime:
 async def search_showings(db: db_dependency, duration1: int = Query(default=0), duration2: int = Query(default=500), start_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), start_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
     try:
         join_results = []
-        join_result = db.query(Movies).join(Showings).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Showings.start_time >= midnight_of(start_date1), Showings.start_time <= end_of_day(start_date2))).all()
-        if join_result is None or len(join_result) < 1:
-            raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+        join_result = db.query(Movies).join(Showings).filter(Showings.start_time > datetime.now(timezone.utc), and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Showings.start_time >= midnight_of(start_date1), Showings.start_time <= end_of_day(start_date2))).all()
+        # if join_result is None or len(join_result) < 1:
+        #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")
         for movie in join_result:
             for showing in movie.showings:
                 dictResult = {
@@ -179,8 +179,17 @@ async def search_showings(db: db_dependency, duration1: int = Query(default=0), 
         for result in join_results:
             if (result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
                 final_results.append(result)
-        if final_results is None or len(final_results) < 1:
-            raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+        # if final_results is None:
+        #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+        
+        for result in final_results:
+            cinema_id = db.query(Halls).filter(Halls.id == result['hall_id']).first().cinema_id
+            cinema = db.query(Cinemas).filter(Cinemas.id == cinema_id).first()
+            movie = db.query(Movies).filter(Movies.id == result["movie_id"]).first()
+            result['cinema_name'] = cinema.name
+            result['cinema_id'] = cinema.id
+            result['image_url'] = movie.image_url
+
         return final_results
         
     except Exception as e:
