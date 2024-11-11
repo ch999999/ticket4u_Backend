@@ -177,7 +177,7 @@ async def search_showings(db: db_dependency, duration1: int = Query(default=0), 
                 join_results.append(dictResult)
         final_results = []
         for result in join_results:
-            if (result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
+            if (result['start_time'] >= datetime.now(timezone.utc) and result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
                 final_results.append(result)
         # if final_results is None:
         #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")

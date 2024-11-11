@@ -157,7 +157,7 @@ async def search_movie_showings(db: db_dependency, movie_ids: list[UUID] = Query
         try:
             results = []
             for movie_id in movie_ids:
-                movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id, and_(Showings.start_time >= midnight_of(showing_date1), Showings.start_time <= end_of_day(showing_date2))).order_by(Showings.start_time).all()
+                movie_showings = db.query(Showings).filter(Showings.start_time>=datetime.now(timezone.utc), Showings.movie_id == movie_id, and_(Showings.start_time >= midnight_of(showing_date1), Showings.start_time <= end_of_day(showing_date2))).order_by(Showings.start_time).all()
                 for movie_showing in movie_showings:
                     cinema_id = db.query(Halls).filter(Halls.id == movie_showing.hall_id).first().cinema_id
                     cinema = db.query(Cinemas).filter(Cinemas.id == cinema_id).first()

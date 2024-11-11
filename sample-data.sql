@@ -24,20 +24,20 @@ ORDER BY hall.id, row_number, seat_number;
 
 -- Insert movies
 INSERT INTO "Movies" (id, title, genre, duration, release_date, last_showing_date, image_url, trailer_url) VALUES
-(gen_random_uuid(), 'Interstellar', 'Sci-Fi', 169, '2024-11-15', '2025-02-15', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/interstallar.jpg', 'https://www.youtube.com/embed/Lm8p5rlrSkY?si=q9J_mdKE887GP4gW'),
-(gen_random_uuid(), 'Insidious', 'Horror', 110, '2024-11-20', '2025-02-20', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/insidious.jpg', 'https://www.youtube.com/embed/zuZnRUcoWos?si=UK377-d9eYMBDVCW'),
-(gen_random_uuid(), 'JUON The Grudge', 'Horror', 115, '2024-11-25', '2025-02-25', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/juon-the-grudge.jpg', 'https://www.youtube.com/embed/BxbBdEA7ZCQ?si=FdlZnGacwfwHg_WF'),
-(gen_random_uuid(), 'Alien Romulus', 'Sci-Fi/Horror', 125, '2024-11-30', '2025-02-28', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/alien-romulus.jpg', ''),
-(gen_random_uuid(), 'The Babadook', 'Horror', 120, '2024-12-01', '2025-03-01', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/babadook.jpg', 'https://www.youtube.com/embed/k5WQZzDRVtw?si=chRXmJdRrWYYA-W2'),
-(gen_random_uuid(), 'Captain America', 'Action', 140, '2024-12-05', '2025-03-05', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/captain-america.jpg', ''),
-(gen_random_uuid(), 'Deadpool and Wolverine', 'Action', 135, '2024-12-10', '2025-03-10', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/deadpool-and-wolverine.jpg', ''),
-(gen_random_uuid(), 'Terrifier 3', 'Horror', 118, '2024-12-15', '2025-03-15', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/terrifier-3.jpg', ''),
-(gen_random_uuid(), 'Kungfu Hustle', 'Action/Comedy', 130, '2024-12-20', '2025-03-20', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/kungfu-hustle.jpg', ''),
-(gen_random_uuid(), 'Matrix Reloaded', 'Sci-Fi/Action', 138, '2024-12-25', '2025-03-25', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/matrix-reloaded.jpg', ''),
-(gen_random_uuid(), 'The Substance', 'Horror', 122, '2024-12-30', '2025-03-30', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/the-substance.jpg', ''),
-(gen_random_uuid(), 'Never Let Go', 'Thriller', 128, '2025-01-05', '2025-04-05', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/never-let-go.jpg', ''),
-(gen_random_uuid(), 'Speak No Evil', 'Horror', 117, '2025-01-10', '2025-04-10', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/speak-no-evil.jpg', ''),
-(gen_random_uuid(), 'Transformers One', 'Action/Sci-Fi', 145, '2025-01-15', '2025-04-15', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/transformers-one.jpg', '');
+(gen_random_uuid(), 'Interstellar', 'Sci-Fi', 169, '2024-10-15', '2025-02-15', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/interstallar.jpg', 'https://www.youtube.com/embed/Lm8p5rlrSkY?si=q9J_mdKE887GP4gW'),
+(gen_random_uuid(), 'Insidious', 'Horror', 110, '2024-10-20', '2025-02-20', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/insidious.jpg', 'https://www.youtube.com/embed/zuZnRUcoWos?si=UK377-d9eYMBDVCW'),
+(gen_random_uuid(), 'JUON The Grudge', 'Horror', 115, '2024-10-25', '2025-02-25', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/juon-the-grudge.jpg', 'https://www.youtube.com/embed/BxbBdEA7ZCQ?si=FdlZnGacwfwHg_WF'),
+(gen_random_uuid(), 'Alien Romulus', 'Sci-Fi/Horror', 125, '2024-10-30', '2025-02-28', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/alien-romulus.jpg', ''),
+(gen_random_uuid(), 'The Babadook', 'Horror', 120, '2024-10-01', '2025-03-01', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/babadook.jpg', 'https://www.youtube.com/embed/k5WQZzDRVtw?si=chRXmJdRrWYYA-W2'),
+(gen_random_uuid(), 'Captain America', 'Action', 140, '2024-10-05', '2025-03-05', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/captain-america.jpg', ''),
+(gen_random_uuid(), 'Deadpool and Wolverine', 'Action', 135, '2024-10-10', '2025-03-10', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/deadpool-and-wolverine.jpg', ''),
+(gen_random_uuid(), 'Terrifier 3', 'Horror', 118, '2024-10-15', '2025-03-15', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/terrifier-3.jpg', ''),
+(gen_random_uuid(), 'Kungfu Hustle', 'Action/Comedy', 130, '2024-10-20', '2025-03-20', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/kungfu-hustle.jpg', ''),
+(gen_random_uuid(), 'Matrix Reloaded', 'Sci-Fi/Action', 138, '2024-10-25', '2025-03-25', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/matrix-reloaded.jpg', ''),
+(gen_random_uuid(), 'The Substance', 'Horror', 122, '2024-10-30', '2025-03-30', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/the-substance.jpg', ''),
+(gen_random_uuid(), 'Never Let Go', 'Thriller', 128, '2024-10-05', '2025-04-05', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/never-let-go.jpg', ''),
+(gen_random_uuid(), 'Speak No Evil', 'Horror', 117, '2024-10-10', '2025-04-10', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/speak-no-evil.jpg', ''),
+(gen_random_uuid(), 'Transformers One', 'Action/Sci-Fi', 145, '2024-10-15', '2025-04-15', 'https://ticket4u-bucket.s3.ap-southeast-1.amazonaws.com/transformers-one.jpg', '');
 
 -- Insert 3 showings for each movie
 INSERT INTO "Showings" (id, hall_id, movie_id, start_time, pricex100)
