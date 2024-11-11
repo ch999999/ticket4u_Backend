@@ -28,7 +28,7 @@ knownErrorStrings = ["Not Found","Showings not found","Bad request","No tickets 
 @router.get("/movies/all")
 async def fetch_all_movies(db:db_dependency):
     try:
-        movies = db.query(Movies).filter(Movies.release_date <= datetime.now(timezone.utc), Movies.last_showing_date >= datetime.now(timezone.utc)).all()
+        movies = db.query(Movies).filter(Movies.release_date <= datetime.now(timezone.utc), Movies.last_showing_date >= datetime.now(timezone.utc)).order_by(Movies.release_date).all()
         if movies is None or len(movies) < 1:
             raise HTTPException(status_code=404, detail="Not Found")
         return movies
@@ -117,13 +117,13 @@ async def search_showings(db: db_dependency, duration1: int = Query(default=0), 
     try:
         #Genre not provided:
         if genre is None:
-            movies = db.query(Movies).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Movies.release_date >= release_date1, Movies.release_date <= release_date2), and_(Movies.last_showing_date >= last_showing_date1, Movies.last_showing_date <= last_showing_date2), Movies.title.ilike(f"{title}%")).all()
+            movies = db.query(Movies).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Movies.release_date >= release_date1, Movies.release_date <= release_date2), and_(Movies.last_showing_date >= last_showing_date1, Movies.last_showing_date <= last_showing_date2), Movies.title.ilike(f"{title}%")).order_by(Movies.release_date).all()
             # if movies is None or len(movies) < 1:
             #     raise HTTPException(status_code=404, detail="No movies found")
             return movies
         
         #Genre provided
-        movies = movies = db.query(Movies).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Movies.release_date >= release_date1, Movies.release_date <= release_date2), and_(Movies.last_showing_date >= last_showing_date1, Movies.last_showing_date <= last_showing_date2), Movies.title.ilike(f"{title}%"), Movies.genre.ilike(genre)).all()
+        movies = movies = db.query(Movies).filter(and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Movies.release_date >= release_date1, Movies.release_date <= release_date2), and_(Movies.last_showing_date >= last_showing_date1, Movies.last_showing_date <= last_showing_date2), Movies.title.ilike(f"{title}%"), Movies.genre.ilike(genre)).order_by(Movies.release_date).all()
         # if movies is None or len(movies) < 1:
         #     raise HTTPException(status_code=404, detail="No movies found")
         return movies
