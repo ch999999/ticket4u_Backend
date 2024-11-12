@@ -97,7 +97,7 @@ async def get_showing_hall(db: db_dependency, showing_id: UUID):
 async def get_all_seats(db: db_dependency, showing_id: UUID):
     try:
         showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
-        hall_seats = db.query(Seats).filter(Seats.hall_id == showing_hall_id).all()
+        hall_seats = db.query(Seats).filter(Seats.hall_id == showing_hall_id).order_by(Seats.row).all()
         # if hall_seats is None or len(hall_seats) < 1:
         #     raise HTTPException(status_code=404, detail = "Seats not found")
         return hall_seats
