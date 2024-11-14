@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Path, HTTPException, Query
 from pydantic import Field
-from app.models import Showings, Seats, Halls, Movies, Cinemas, Tickets
+from app.models import Payments, Showings, Seats, Halls, Movies, Cinemas, TicketPayments, Tickets
 from app.database import SessionLocal
 from typing import Annotated, Optional
 from sqlalchemy.orm import Session
@@ -8,7 +8,7 @@ from sqlalchemy import and_, or_, select
 from app.auth import get_current_user
 from uuid import UUID
 from app.error_handling import handle_exception
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 router = APIRouter()
 
@@ -43,8 +43,14 @@ async def get_show_by_id(db: db_dependency, showing_id: UUID = Path()):
 
         if showing_result is None:
             raise HTTPException(status_code=404, detail="Showing not found")
-        
-        return showing_result
+        showing_hall = db.query(Halls).filter(Halls.id == showing_result.hall_id).first()
+        showing_cinema = db.query(Cinemas).filter(Cinemas.id == showing_hall.cinema_id).first()
+        showing_dict = showing_result.__dict__
+        showing_dict["hall_id"] = showing_hall.id
+        showing_dict["hall_name"] = showing_hall.name
+        showing_dict["cinema_id"] = showing_cinema.id
+        showing_dict["cinema_name"] = showing_cinema.name
+        return showing_dict
         
     except Exception as e:
         print("Error fetching showing: "+str(e))
@@ -109,11 +115,22 @@ async def get_all_seats(db: db_dependency, showing_id: UUID):
 @router.get("/showings/{showing_id}/seats/available")#, response_model=Seat)
 async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
     try:
+        expired_payments = db.query(Payments).filter(or_(Payments.status.ilike("unpaid"), Payments.status.ilike("retry")), (datetime.now(timezone.utc) > Payments.created_date+timedelta(minutes=11))).all()
+        if len(expired_payments) > 0:
+            for payment in expired_payments:
+                payment.status = 'expired'
+                ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id==payment.id).all()
+                for ticket_payment in ticket_payments:
+                    ticket_payment.status = 'expired'
+                    ticket = db.query(Tickets).filter(Tickets.id==ticket_payment.ticket_id).first()
+                    ticket.status = 'failed'
+            db.commit()
+        
         showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
         seats_hall = db.query(Seats).filter(Seats.hall_id==showing_hall_id).all()
         showing_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id,or_(Tickets.status.ilike("active"),Tickets.status.ilike("unpaid"))).all()
         seats_available = []
-
+        
         for seat in seats_hall:
             available = True
             for ticket in showing_tickets:
