@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_
@@ -67,8 +67,8 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
             payment_method = "tba",
             status = "unpaid",
             user_id = user.get("id"),
-            created_date = datetime.now(),
-            last_modified_date = datetime.now()
+            created_date = datetime.now(timezone.utc),
+            last_modified_date = datetime.now(timezone.utc)
         )
         db.add(new_payment)
 
@@ -82,8 +82,8 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
                 seat_id = ticket_create.seat_id,
                 pricex100 = showing.pricex100,
                 status = "unpaid",
-                created_date = datetime.now(),
-                last_modified_date = datetime.now()
+                created_date = datetime.now(timezone.utc),
+                last_modified_date = datetime.now(timezone.utc)
             )
             db.add(new_ticket)
 
@@ -92,8 +92,8 @@ async def create_ticket(user: user_dependency, db: db_dependency, ticket_creates
                 payment_id = new_payment.id,
                 status = "unpaid",
                 amountx100 = showing.pricex100,
-                created_date = datetime.now(),
-                last_modified_date = datetime.now()
+                created_date = datetime.now(timezone.utc),
+                last_modified_date = datetime.now(timezone.utc)
             )
             db.add(new_ticket_payment)
         

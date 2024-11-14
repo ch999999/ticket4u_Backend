@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy import desc
@@ -22,7 +22,7 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-knownErrorStrings = ["Payment does not belong to this user","No successful payments found for this user","Ticket payments not found","Payment not found","Unauthorized","No payments found for this user", "Payment attempt already made", "Ticket ineligible for refund", "Ticket not eligible for refund","Duplicate values not allowed"]
+knownErrorStrings = ["Payment does not belong to this user","Expired","No successful payments found for this user","Ticket payments not found","Payment not found","Unauthorized","No payments found for this user", "Payment attempt already made", "Ticket ineligible for refund", "Ticket not eligible for refund","Duplicate values not allowed"]
 
 @router.get("/payments/all")
 async def get_all_payments(user: user_dependency, db: db_dependency):
@@ -43,7 +43,6 @@ async def get_all_payments(user: user_dependency, db: db_dependency):
 async def get_all_payments(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Not Authenticated")
-    
     try:
         user_payments = db.query(Payments).filter(Payments.user_id == user.get("id"), Payments.status.ilike("success")).order_by(desc(Payments.created_date)).all()
         # if user_payments is None or len(user_payments) < 1:
@@ -65,6 +64,17 @@ async def get_payment_by_id(user: user_dependency, db: db_dependency, payment_id
             raise HTTPException(status_code=404, detail="Payment not found")
         if str(payment.user_id) != str(user.get("id")):
             raise HTTPException(status_code=401, detail="Unauthorized")
+        
+        #if current time > 11 minutes from creation time, update status to expired and reject
+        if (payment.status.lower()!="unpaid" or payment.status.lower()!="retry") and (datetime.now(timezone.utc) > payment.created_date+timedelta(minutes=11)):
+            payment.status = 'expired'
+            ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id==payment_id).all()
+            for ticket_payment in ticket_payments:
+                ticket_payment.status = 'expired'
+                ticket = db.query(Tickets).filter(Tickets.id==ticket_payment.ticket_id).first()
+                ticket.status = 'failed'
+            db.commit()
+            payment = db.query(Payments).filter(Payments.id == payment_id).first()
         return payment
     except Exception as e:
         print("Error fetching payment: "+str(e))
@@ -131,6 +141,17 @@ async def make_payment(user: user_dependency, db: db_dependency, payment_id: UUI
         #If an attempt, successful or failed has already been attempted, reject
         if payment.status.lower() != "unpaid" and payment.status.lower() != "retry":
             raise HTTPException(status_code=400, detail="Payment attempt already made")
+
+        #if current time > 11 minutes from creation time, update status to expired and reject
+        if datetime.now(timezone.utc) > payment.created_date+timedelta(minutes=11):
+            payment.status = 'expired'
+            ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id==payment_id).all()
+            for ticket_payment in ticket_payments:
+                ticket_payment.status = 'expired'
+                ticket = db.query(Tickets).filter(Tickets.id==ticket_payment.ticket_id).first()
+                ticket.status = 'failed'
+            db.commit()
+            raise HTTPException(status_code=403,detail="Expired")
 
         ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id == payment_id).all()
         payment.payment_method = payment_method
