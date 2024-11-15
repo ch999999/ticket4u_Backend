@@ -1,6 +1,7 @@
 -- Insert single cinema
 INSERT INTO "Cinemas" (id, name, address, phone)
-VALUES (gen_random_uuid(), 'Megaplex Cinema', '789 Broadway St, Metropolis', '555-0300');
+VALUES (gen_random_uuid(), 'Megaplex Cinema', '789 Broadway St, Metropolis', '555-0300'),
+(gen_random_uuid(), 'Gigaplex Cinema', '767 Main St, Downtown', '564-9033');
 
 -- Insert 5 halls
 INSERT INTO "Halls" (id, cinema_id, name, capacity)
