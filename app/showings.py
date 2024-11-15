@@ -99,20 +99,31 @@ async def get_showing_hall(db: db_dependency, showing_id: UUID):
         handle_exception(e, knownErrorStrings)
 
 
-@router.get("/showings/{showing_id}/seats")
-async def get_all_seats(db: db_dependency, showing_id: UUID):
-    try:
-        showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
-        hall_seats = db.query(Seats).filter(Seats.hall_id == showing_hall_id).order_by(Seats.row).all()
-        # if hall_seats is None or len(hall_seats) < 1:
-        #     raise HTTPException(status_code=404, detail = "Seats not found")
-        return hall_seats
-    except Exception as e:
-        print("Error fetching seats: "+str(e))
-        handle_exception(e, knownErrorStrings)  
+# @router.get("/showings/{showing_id}/seats")
+# async def get_all_seats(db: db_dependency, showing_id: UUID):
+#     try:
+#         expired_payments = db.query(Payments).filter(or_(Payments.status.ilike("unpaid"), Payments.status.ilike("retry")), (datetime.now(timezone.utc) > Payments.created_date+timedelta(minutes=11))).all()
+#         if len(expired_payments) > 0:
+#             for payment in expired_payments:
+#                 payment.status = 'expired'
+#                 ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id==payment.id).all()
+#                 for ticket_payment in ticket_payments:
+#                     ticket_payment.status = 'expired'
+#                     ticket = db.query(Tickets).filter(Tickets.id==ticket_payment.ticket_id).first()
+#                     ticket.status = 'failed'
+#             db.commit()
+        
+#         showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
+#         hall_seats = db.query(Seats).filter(Seats.hall_id == showing_hall_id).order_by(Seats.row).all()
+#         # if hall_seats is None or len(hall_seats) < 1:
+#         #     raise HTTPException(status_code=404, detail = "Seats not found")
+#         return hall_seats
+#     except Exception as e:
+#         print("Error fetching seats: "+str(e))
+#         handle_exception(e, knownErrorStrings)  
 
 
-@router.get("/showings/{showing_id}/seats/available")#, response_model=Seat)
+@router.get("/showings/{showing_id}/seats")#, response_model=Seat)
 async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
     try:
         expired_payments = db.query(Payments).filter(or_(Payments.status.ilike("unpaid"), Payments.status.ilike("retry")), (datetime.now(timezone.utc) > Payments.created_date+timedelta(minutes=11))).all()
@@ -129,15 +140,21 @@ async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
         showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
         seats_hall = db.query(Seats).filter(Seats.hall_id==showing_hall_id).all()
         showing_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id,or_(Tickets.status.ilike("active"),Tickets.status.ilike("unpaid"))).all()
-        seats_available = []
+        seats_available = [] 
+        
         
         for seat in seats_hall:
+            seat = seat.__dict__
             available = True
             for ticket in showing_tickets:
-                if ticket.seat_id == seat.id:
+                if ticket.seat_id == seat['id']:
                     available = False
                     break
             if available:
+                seat["available"] = True
+                seats_available.append(seat)
+            else:
+                seat["available"] = False
                 seats_available.append(seat)
         return seats_available
         # if seats_available is not None and len(seats_available) > 0:
