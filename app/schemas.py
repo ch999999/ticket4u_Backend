@@ -76,6 +76,7 @@ class MovieBase(BaseModel):
     last_showing_date: date
     image_url: str
     trailer_url: str
+    synopsis: str
 
 
 class MovieCreate(MovieBase):
