@@ -28,7 +28,7 @@ knownErrorStrings = ["Not Found","Showings not found","Bad request","No tickets 
 @router.get("/movies/all")
 async def fetch_all_movies(db:db_dependency):
     try:
-        movies = db.query(Movies).filter(Movies.release_date <= datetime.now(timezone.utc), Movies.last_showing_date >= datetime.now(timezone.utc)).order_by(Movies.release_date).all()
+        movies = db.query(Movies).filter(Movies.last_showing_date >= datetime.now(timezone.utc)).order_by(Movies.release_date).all()
         if movies is None or len(movies) < 1:
             raise HTTPException(status_code=404, detail="Not Found")
         return movies
