@@ -55,6 +55,13 @@ async def fetch_movie_showings(db: db_dependency, movie_id: UUID):
         movie_showings = db.query(Showings).filter(Showings.movie_id == movie_id).all()
         # if movie_showings is None:
         #     raise HTTPException(status_code=404, detail="Showings not found")
+        for showing in movie_showings:
+            hall = db.query(Halls).filter(Halls.id==showing.hall_id).first()
+            cinema = db.query(Cinemas).filter(Cinemas.id==hall.cinema_id).first()
+            showing = showing.__dict__
+            showing["hall_name"] = hall.name
+            showing["cinema_id"] = cinema.id
+            showing["cinema_name"] = cinema.name
         return movie_showings
     except Exception as e:
         print("Error fetching movie showings: "+str(e))

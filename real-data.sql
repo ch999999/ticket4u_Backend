@@ -1604,3 +1604,11 @@ INSERT INTO "Showings" (id, hall_id, movie_id, start_time, pricex100) VALUES
 -- (gen_random_uuid(), '06704009-4cda-4207-809b-d211cea25edd', '3d1fd545-0db9-4f54-914b-911e962d34b0', '2024-01-20 15:30:00+00:00', 1800),
 -- ...........more rows
 -- (gen_random_uuid(), '06704009-4cda-4207-809b-d211cea25edd', '3d1fd545-0db9-4f54-914b-911e962d34b0', '2024-01-20 15:30:00+00:00', 1800);
+
+
+-- Insert users with hashed passwords (password123)
+INSERT INTO "Users" (id, username, email, phone, first_name, last_name, date_of_registration, last_modified_date, password)
+VALUES 
+    (gen_random_uuid(), 'user1', 'user1@example.com', '0122223333', 'User', 'One', '2024-01-15 10:00:00+00', '2024-01-15 10:00:00+00', '$2b$12$JrEq/AYYXV0gd2srNwk5i.YMmyx6MHA5ArfZ4OYnckSmki/U5MiVa'),
+    (gen_random_uuid(), 'user2', 'user2@example.com', '0133334444', 'User', 'Two', '2024-02-01 14:30:00+00', '2024-02-01 14:30:00+00', '$2b$12$31a.BZPw1Z/yk/MFDPI42eijpffUuSEplOl1s.SXM09C3yx8gUS.W'),
+    (gen_random_uuid(), 'user3', 'user3@example.com', '0144445555', 'User', 'Three', '2024-02-01 14:30:00+00', '2024-02-01 14:30:00+00', '$2b$12$Lsq0XiuKn6Vf/8mhzcwEWe7Gm7dTTVzrF6OJHAjnLaGsEh5txjm2i');
