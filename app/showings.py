@@ -190,45 +190,96 @@ def midnight_of(d: date) -> datetime:
 @router.get("/showings/search/")
 async def search_showings(db: db_dependency, duration1: int = Query(default=0), duration2: int = Query(default=500), start_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), start_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
     try:
-        join_results = []
-        join_result = db.query(Movies).join(Showings).filter(Showings.start_time > datetime.now(timezone.utc), and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Showings.start_time >= midnight_of(start_date1), Showings.start_time <= end_of_day(start_date2))).all()
-        # if join_result is None or len(join_result) < 1:
-        #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")
-        for movie in join_result:
-            for showing in movie.showings:
-                dictResult = {
-                      "showing_id": showing.id,
-                      "hall_id": showing.hall_id,
-                      "movie_id": movie.id,
-                      "start_time": showing.start_time,
-                      "pricex100": showing.pricex100,
-                      "duration": movie.duration,
-                      "title": movie.title,
-                      "genre": movie.genre,
-                      "release_date": movie.release_date,
-                      "last_showing_date": movie.last_showing_date 
-                     }
-                join_results.append(dictResult)
+        # Use a more efficient query that gets all needed information at once
+        results = db.query(
+            Showings,
+            Movies,
+            Halls,
+            Cinemas
+        ).join(
+            Movies, Showings.movie_id == Movies.id
+        ).join(
+            Halls, Showings.hall_id == Halls.id
+        ).join(
+            Cinemas, Halls.cinema_id == Cinemas.id
+        ).filter(
+            Showings.start_time > datetime.now(timezone.utc),
+            Movies.duration >= duration1,
+            Movies.duration <= duration2,
+            Showings.start_time >= midnight_of(start_date1),
+            Showings.start_time <= end_of_day(start_date2)
+        ).order_by(Showings.start_time).limit(200).all()
+
         final_results = []
-        for result in join_results:
-            if (result['start_time'] >= datetime.now(timezone.utc) and result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
-                final_results.append(result)
-        # if final_results is None:
-        #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")
-        
-        for result in final_results:
-            cinema_id = db.query(Halls).filter(Halls.id == result['hall_id']).first().cinema_id
-            cinema = db.query(Cinemas).filter(Cinemas.id == cinema_id).first()
-            movie = db.query(Movies).filter(Movies.id == result["movie_id"]).first()
-            result['cinema_name'] = cinema.name
-            result['cinema_id'] = cinema.id
-            result['image_url'] = movie.image_url
+        for showing, movie, hall, cinema in results:
+            final_results.append({
+                "showing_id": showing.id,
+                "hall_id": showing.hall_id,
+                "movie_id": movie.id,
+                "start_time": showing.start_time,
+                "pricex100": showing.pricex100,
+                "duration": movie.duration,
+                "title": movie.title,
+                "genre": movie.genre,
+                "release_date": movie.release_date,
+                "last_showing_date": movie.last_showing_date,
+                "cinema_name": cinema.name,
+                "cinema_id": cinema.id,
+                "image_url": movie.image_url
+            })
+        # ultimate_results=[]
+        # for result in final_results:
+        #    if (result['start_time'] >= datetime.now(timezone.utc) and result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
+        #         ultimate_results.append(result)
 
         return final_results
-        
+
     except Exception as e:
         print("Error fetching showings: "+str(e))
         handle_exception(e, knownErrorStrings)
+
+# @router.get("/showings/search/")
+# async def search_showings(db: db_dependency, duration1: int = Query(default=0), duration2: int = Query(default=500), start_date1: date = Query(default=date(1900,1,1), ge=date(1900,1,1), le=date(2200,12,31)), start_date2: date = Query(default=date(2200,12,31), ge=date(1900,1,1), le=date(2200,12,31))):
+#     try:
+#         join_results = []
+#         join_result = db.query(Movies).join(Showings).filter(Showings.start_time > datetime.now(timezone.utc), and_(Movies.duration >= duration1, Movies.duration <= duration2), and_(Showings.start_time >= midnight_of(start_date1), Showings.start_time <= end_of_day(start_date2))).limit(150).all()
+#         # if join_result is None or len(join_result) < 1:
+#         #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+#         for movie in join_result:
+#             for showing in movie.showings:
+#                 dictResult = {
+#                       "showing_id": showing.id,
+#                       "hall_id": showing.hall_id,
+#                       "movie_id": movie.id,
+#                       "start_time": showing.start_time,
+#                       "pricex100": showing.pricex100,
+#                       "duration": movie.duration,
+#                       "title": movie.title,
+#                       "genre": movie.genre,
+#                       "release_date": movie.release_date,
+#                       "last_showing_date": movie.last_showing_date 
+#                      }
+#                 join_results.append(dictResult)
+#         final_results = []
+#         for result in join_results:
+#             if (result['start_time'] >= datetime.now(timezone.utc) and result['duration'] >= duration1 and result['duration'] <= duration2) and (result['start_time'] >= midnight_of(start_date1) and result['start_time'] <= end_of_day(start_date2)):
+#                 final_results.append(result)
+#         # if final_results is None:
+#         #     raise HTTPException(status_code=404, detail="No showings found for this search criteria")
+        
+#         for result in final_results:
+#             cinema_id = db.query(Halls).filter(Halls.id == result['hall_id']).first().cinema_id
+#             cinema = db.query(Cinemas).filter(Cinemas.id == cinema_id).first()
+#             movie = db.query(Movies).filter(Movies.id == result["movie_id"]).first()
+#             result['cinema_name'] = cinema.name
+#             result['cinema_id'] = cinema.id
+#             result['image_url'] = movie.image_url
+
+#         return final_results
+        
+#     except Exception as e:
+#         print("Error fetching showings: "+str(e))
+#         handle_exception(e, knownErrorStrings)
 
 
         

@@ -53,7 +53,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: 
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     else:
-        access_token = create_access_token(user.username, str(user.id), timedelta(minutes=180))
+        access_token = create_access_token(user.username, str(user.id), timedelta(minutes=1800))
         return {"access_token": access_token, "token_type": "bearer"}
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
