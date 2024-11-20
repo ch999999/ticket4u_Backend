@@ -137,8 +137,8 @@ async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
                     ticket.status = 'failed'
             db.commit()
         
-        showing_hall_id = db.query(Showings).filter(Showings.id == showing_id).first().hall_id
-        seats_hall = db.query(Seats).filter(Seats.hall_id==showing_hall_id).all()
+        showing = db.query(Showings).filter(Showings.id == showing_id).first()
+        seats_hall = db.query(Seats).filter(Seats.hall_id==showing.hall_id).all()
         showing_tickets = db.query(Tickets).filter(Tickets.showing_id == showing_id,or_(Tickets.status.ilike("active"),Tickets.status.ilike("unpaid"))).all()
         seats_available = [] 
         
@@ -156,6 +156,7 @@ async def get_seats_available(db: db_dependency, showing_id: UUID = Path()):
             else:
                 seat["available"] = False
                 seats_available.append(seat)
+            seat["pricex100"] = showing.pricex100
         return seats_available
         # if seats_available is not None and len(seats_available) > 0:
         #     return seats_available
