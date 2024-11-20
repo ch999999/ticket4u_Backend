@@ -66,7 +66,8 @@ async def get_payment_by_id(user: user_dependency, db: db_dependency, payment_id
             raise HTTPException(status_code=401, detail="Unauthorized")
         
         #if current time > 11 minutes from creation time, update status to expired and reject
-        if (payment.status.lower()!="unpaid" or payment.status.lower()!="retry" or payment.status.lower()!="success") and (datetime.now(timezone.utc) > payment.created_date+timedelta(minutes=11)):
+        if (payment.status.lower()=="unpaid" or payment.status.lower()=="retry" ) and (datetime.now(timezone.utc) > payment.created_date+timedelta(minutes=11)):
+            print(payment.status.lower())
             payment.status = 'expired'
             ticket_payments = db.query(TicketPayments).filter(TicketPayments.payment_id==payment_id).all()
             for ticket_payment in ticket_payments:
