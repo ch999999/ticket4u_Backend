@@ -1,0 +1,11 @@
+db instance id: dbinstanceid
+image: gcr.io/projid/ticket4u-backend-test
+service: servicename
+
+gcloud services enable run.googleapis.com
+
+gcloud auth activate-service-account "your key path"
+
+gcloud builds submit --tag gcr.io/projid/ticket4u-backend-test (delete existing first?)
+
+gcloud run deploy servicename --image gcr.io/projid/ticket4u-backend-test --add-cloudsql-instances projid:us-central1:ticket4u-db-server --platform managed --region us-central1 --allow-unauthenticated --env-vars-file=env.yaml
