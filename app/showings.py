@@ -45,11 +45,14 @@ async def get_show_by_id(db: db_dependency, showing_id: UUID = Path()):
             raise HTTPException(status_code=404, detail="Showing not found")
         showing_hall = db.query(Halls).filter(Halls.id == showing_result.hall_id).first()
         showing_cinema = db.query(Cinemas).filter(Cinemas.id == showing_hall.cinema_id).first()
+        showing_movie = db.query(Movies).filter(Movies.id==showing_result.movie_id).first()
         showing_dict = showing_result.__dict__
         showing_dict["hall_id"] = showing_hall.id
         showing_dict["hall_name"] = showing_hall.name
         showing_dict["cinema_id"] = showing_cinema.id
         showing_dict["cinema_name"] = showing_cinema.name
+        showing_dict["title"] = showing_movie.title
+        showing_dict["duration"] = showing_movie.duration
         return showing_dict
         
     except Exception as e:
