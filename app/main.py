@@ -4,12 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models, auth, users, tickets, payments, showings, cinemas, refunds, movies, seats
 from app.database import SessionLocal, engine
+from dotenv import load_dotenv
+import os
 
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",
-    "http://localhost:3001"
+    "http://localhost:3001",
+    os.getenv("FRONTEND_URL")
 ]
 
 
