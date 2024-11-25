@@ -176,6 +176,7 @@ async def search_movie_showings(db: db_dependency, movie_ids: list[UUID] = Query
                     dict["title"] = movie.title
                     dict["genre"] = movie.genre
                     dict["image_url"] = movie.image_url
+                    dict["duration"] = movie.duration
                     results.append(dict)
             return results
         except Exception as e:
